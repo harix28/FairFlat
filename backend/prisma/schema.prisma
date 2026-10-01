@@ -1,0 +1,148 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String         @id @default(uuid())
+  name           String
+  email          String         @unique
+  passwordHash   String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  
+  groupMembers   GroupMember[]
+  paidExpenses   Expense[]      @relation("PayerExpenses")
+  expenseParticipations ExpenseParticipant[]
+  sentPayments   Payment[]      @relation("SentPayments")
+  receivedPayments Payment[]    @relation("ReceivedPayments")
+  notifications  Notification[]
+}
+
+model Group {
+  id          String        @id @default(uuid())
+  name        String
+  inviteCode  String?       @unique
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  
+  members     GroupMember[]
+  expenses    Expense[]
+  recurringExpenses RecurringExpense[]
+}
+
+model GroupMember {
+  id        String   @id @default(uuid())
+  userId    String
+  groupId   String
+  role      String   @default("member") // owner, admin, member
+  joinedAt  DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, groupId])
+}
+
+model Expense {
+  id            String   @id @default(uuid())
+  groupId       String
+  payerId       String
+  amount        Float
+  title         String
+  category      String?
+  splitType     String   // equal, percentage, custom, itemized
+  date          DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  tax           Float?
+  serviceCharge Float?
+  taxDistribution String? // everyone, item_participants, proportional
+  
+  group         Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  payer         User     @relation("PayerExpenses", fields: [payerId], references: [id])
+  items         ExpenseItem[]
+  participants  ExpenseParticipant[]
+}
+
+model ExpenseItem {
+  id          String   @id @default(uuid())
+  expenseId   String
+  name        String
+  price       Float
+  quantity    Int      @default(1)
+  
+  expense     Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  participants ItemParticipant[]
+}
+
+model ExpenseParticipant {
+  id          String   @id @default(uuid())
+  expenseId   String
+  userId      String
+  share       Float?   // Custom amount or percentage
+  calculatedAmount Float // What they are actually responsible for
+  
+  expense     Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id])
+  
+  @@unique([expenseId, userId])
+}
+
+model ItemParticipant {
+  id            String   @id @default(uuid())
+  expenseItemId String
+  userId        String
+  
+  item          ExpenseItem @relation(fields: [expenseItemId], references: [id], onDelete: Cascade)
+  
+  @@unique([expenseItemId, userId])
+}
+
+model Payment {
+  id          String   @id @default(uuid())
+  groupId     String
+  fromUserId  String
+  toUserId    String
+  amount      Float
+  status      String   @default("pending") // pending, completed
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  
+  fromUser    User     @relation("SentPayments", fields: [fromUserId], references: [id])
+  toUser      User     @relation("ReceivedPayments", fields: [toUserId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  type      String   // expense, settlement, group_invite
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RecurringExpense {
+  id            String   @id @default(uuid())
+  groupId       String
+  payerId       String
+  amount        Float
+  title         String
+  category      String?
+  splitType     String   // equal, percentage, custom, itemized
+  interval      String   // daily, weekly, monthly, yearly
+  nextRun       DateTime
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  group         Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+}

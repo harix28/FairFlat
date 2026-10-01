@@ -1,0 +1,141 @@
+import { useState, useRef, useEffect } from 'react';
+import { Bot, Send, X, Loader2 } from 'lucide-react';
+import { Button } from './ui/button';
+import { botApi } from '../services/api';
+
+interface Message {
+  id: string;
+  sender: 'bot' | 'user';
+  text: string;
+  isActionable?: boolean;
+}
+
+export function FairBot() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([
+    { id: '1', sender: 'bot', text: 'Hi Hari! I can help you add expenses, check balances, or settle up. Just ask!' }
+  ]);
+  const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const handleSend = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!input.trim()) return;
+
+    const userMessage = input.trim();
+    setInput('');
+    setMessages(prev => [...prev, { id: Date.now().toString(), sender: 'user', text: userMessage }]);
+    setIsTyping(true);
+
+    try {
+      const res = await botApi.chat({ text: userMessage });
+      const intent = res.data.result;
+      
+      let botResponse = "I didn't quite catch that. Can you rephrase?";
+      let isActionable = false;
+
+      if (intent.intent === 'CREATE_EXPENSE') {
+        botResponse = `Got it. So ${intent.payer} paid ₹${intent.amount} which is shared by ${intent.participants.join(', ')}. Should I save this?`;
+        isActionable = true;
+      } else if (intent.intent === 'GET_BALANCE') {
+        botResponse = "You currently owe ₹850, and you are owed ₹2,100 overall. Do you want to settle up now?";
+      }
+
+      setTimeout(() => {
+        setMessages(prev => [...prev, { id: Date.now().toString(), sender: 'bot', text: botResponse, isActionable }]);
+        setIsTyping(false);
+      }, 1000); // Simulate network delay
+    } catch (err) {
+      setTimeout(() => {
+        setMessages(prev => [...prev, { id: Date.now().toString(), sender: 'bot', text: "Sorry, I'm having trouble connecting right now." }]);
+        setIsTyping(false);
+      }, 1000);
+    }
+  };
+
+  if (!isOpen) {
+    return (
+      <button 
+        onClick={() => setIsOpen(true)}
+        className="fixed bottom-6 right-6 md:bottom-8 md:right-8 w-14 h-14 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-full shadow-lg flex items-center justify-center text-white hover:scale-110 transition-transform z-50 animate-bounce"
+      >
+        <Bot className="w-7 h-7" />
+      </button>
+    );
+  }
+
+  return (
+    <div className="fixed bottom-6 right-6 md:bottom-8 md:right-8 w-[350px] h-[500px] bg-white rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden border border-slate-200">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 flex items-center justify-between text-white">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+            <Bot className="w-5 h-5" />
+          </div>
+          <span className="font-semibold text-lg">FairBot</span>
+        </div>
+        <button onClick={() => setIsOpen(false)} className="text-white/80 hover:text-white transition-colors">
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
+        {messages.map(msg => (
+          <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+              msg.sender === 'user' 
+                ? 'bg-blue-600 text-white rounded-tr-sm' 
+                : 'bg-white border border-slate-200 text-slate-800 rounded-tl-sm shadow-sm'
+            }`}>
+              {msg.text}
+              {msg.isActionable && (
+                <div className="mt-3 flex gap-2">
+                  <Button size="sm" className="h-8 text-xs bg-emerald-500 hover:bg-emerald-600 w-full text-white">Confirm</Button>
+                  <Button size="sm" variant="outline" className="h-8 text-xs w-full">Edit</Button>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+        {isTyping && (
+          <div className="flex justify-start">
+            <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+              <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <form onSubmit={handleSend} className="p-3 bg-white border-t border-slate-200">
+        <div className="relative flex items-center">
+          <input
+            type="text"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder="e.g. I paid 500 for milk..."
+            className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          />
+          <button 
+            type="submit"
+            disabled={!input.trim()}
+            className="absolute right-2 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          >
+            <Send className="w-4 h-4 ml-0.5" />
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}

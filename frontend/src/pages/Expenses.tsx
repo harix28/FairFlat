@@ -1,0 +1,98 @@
+import { useState } from 'react';
+import { Card, CardContent } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Search, Filter, Plus, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { fetchDashboardData } from '../services/api';
+import { useAppContext } from '../context/AppContext';
+
+const Expenses = () => {
+  const [search, setSearch] = useState('');
+  const { activeGroup } = useAppContext();
+  
+  const { data, isLoading } = useQuery({
+    queryKey: ['dashboard', activeGroup?.id],
+    queryFn: () => fetchDashboardData(activeGroup?.id || ''),
+    enabled: !!activeGroup?.id
+  });
+
+  if (isLoading || !data) {
+    return (
+      <div className="flex h-[80vh] items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  const filteredExpenses = data.expenses.filter((e: any) => e.title.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <div className="space-y-6 max-w-6xl mx-auto pb-20 md:pb-0">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Expenses</h1>
+          <p className="text-slate-500 mt-1">Track and manage all group expenses.</p>
+        </div>
+        <Button asChild>
+          <Link to="/app/expenses/new">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Expense
+          </Link>
+        </Button>
+      </div>
+
+      <div className="flex gap-3 mb-6">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input 
+            type="text" 
+            placeholder="Search expenses..." 
+            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Button variant="outline" className="px-3">
+          <Filter className="w-4 h-4" />
+        </Button>
+      </div>
+
+      <div className="space-y-3">
+        {filteredExpenses.map((expense: any, i: number) => (
+          <Card key={i} className="hover:border-blue-200 transition-colors cursor-pointer group">
+            <CardContent className="p-4 sm:p-5 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center bg-slate-100 text-slate-600`}>
+                  <span className="text-xs font-semibold uppercase">{expense.date.split(',')[0].split(' ')[0] || 'Day'}</span>
+                  <span className="text-lg font-bold leading-none">
+                    {expense.date.split(',')[0].split(' ')[1] || '01'}
+                  </span>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors text-lg">{expense.title}</h4>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-sm text-slate-500">{expense.payerId} paid ₹{expense.amount.toLocaleString()}</span>
+                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                    <span className="text-sm text-slate-500 capitalize">{expense.splitType} Split</span>
+                  </div>
+                </div>
+              </div>
+              <div className="text-right hidden sm:block">
+                <div className="font-semibold text-slate-900">₹{expense.amount.toLocaleString()}</div>
+                <div className="text-sm text-emerald-500">{expense.participants.length} involved</div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        {filteredExpenses.length === 0 && (
+          <div className="text-center py-12 text-slate-500">
+            No expenses found matching "{search}"
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Expenses;
