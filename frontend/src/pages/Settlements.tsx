@@ -7,9 +7,15 @@ import { fetchDashboardData, expenseApi } from '../services/api';
 import { useAppContext } from '../context/AppContext';
 
 const Settlements = () => {
-  const { activeGroup } = useAppContext();
+  const { user, activeGroup } = useAppContext();
   const queryClient = useQueryClient();
   const [processingId, setProcessingId] = useState<string | null>(null);
+
+  const getUserName = (userId: string) => {
+    if (userId === user?.id) return 'You';
+    const member = activeGroup?.members?.find((m: any) => m.user.id === userId);
+    return member ? member.user.name : userId.substring(0, 4);
+  };
   
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard', activeGroup?.id],
@@ -89,18 +95,18 @@ const Settlements = () => {
                 <div className="flex items-center gap-4 flex-1">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold">
-                      {s.from.charAt(0)}
+                      {getUserName(s.from).charAt(0)}
                     </div>
-                    <span className="font-semibold">{s.from}</span>
+                    <span className="font-semibold">{getUserName(s.from)}</span>
                   </div>
                   
                   <ArrowRight className="w-5 h-5 text-slate-400 flex-shrink-0" />
                   
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">
-                      {s.to.charAt(0)}
+                      {getUserName(s.to).charAt(0)}
                     </div>
-                    <span className="font-semibold">{s.to}</span>
+                    <span className="font-semibold">{getUserName(s.to)}</span>
                   </div>
                 </div>
 

@@ -8,7 +8,13 @@ import { Loader2 } from 'lucide-react';
 const COLORS = ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444', '#f59e0b'];
 
 const Analytics = () => {
-  const { activeGroup } = useAppContext();
+  const { activeGroup, user } = useAppContext();
+
+  const getUserName = (userId: string) => {
+    if (userId === user?.id) return 'You';
+    const member = activeGroup?.members?.find((m: any) => m.user.id === userId);
+    return member ? member.user.name : userId.substring(0, 4);
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard', activeGroup?.id],
@@ -45,12 +51,12 @@ const Analytics = () => {
   
   data.expenses.forEach((e: any) => {
     // Tally contributions
-    if (!userStats[e.payerId]) userStats[e.payerId] = { name: e.payerId, contribution: 0, fairShare: 0 };
+    if (!userStats[e.payerId]) userStats[e.payerId] = { name: getUserName(e.payerId), contribution: 0, fairShare: 0 };
     userStats[e.payerId].contribution += e.amount;
 
     // Tally fair shares
     e.participants.forEach((p: any) => {
-      if (!userStats[p.userId]) userStats[p.userId] = { name: p.userId, contribution: 0, fairShare: 0 };
+      if (!userStats[p.userId]) userStats[p.userId] = { name: getUserName(p.userId), contribution: 0, fairShare: 0 };
       userStats[p.userId].fairShare += p.calculatedAmount;
     });
   });
