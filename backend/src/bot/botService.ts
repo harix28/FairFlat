@@ -15,11 +15,10 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'mock-key');
 
 export class FairBotService {
   public static async extractIntent(text: string): Promise<BotIntent> {
-    if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'mock-key') {
-      // Fallback to mock if no API key
-      const lowerText = text.toLowerCase();
+    const fallbackMock = (input: string): BotIntent => {
+      const lowerText = input.toLowerCase();
       if (lowerText.includes('paid') && lowerText.match(/\d+/)) {
-        const amountMatch = text.match(/\d+/);
+        const amountMatch = lowerText.match(/\d+/);
         const amount = amountMatch ? parseInt(amountMatch[0]) : 0;
         let payer = 'You';
         if (lowerText.includes('rahul paid')) payer = 'Rahul';
@@ -29,12 +28,16 @@ export class FairBotService {
         if (lowerText.includes('me')) participants.push('Hari');
         if (lowerText.includes('rahul')) participants.push('Rahul');
         if (lowerText.includes('aman')) participants.push('Aman');
-        if (lowerText.includes('everyone')) participants.push('Hari', 'Rahul', 'Aman', 'Priya');
-
+        
+        // If they didn't specify anyone, default to "everyone" in a real app, but for now just empty array which gets handled by frontend
         return { intent: 'CREATE_EXPENSE', amount, payer, participants, splitType: 'equal' };
       }
-      if (lowerText.includes('owe me') || lowerText.includes('my balance')) return { intent: 'GET_BALANCE' };
+      if (lowerText.includes('owe me') || lowerText.includes('my balance') || lowerText.includes('how much do i owe')) return { intent: 'GET_BALANCE' };
       return { intent: 'UNKNOWN' };
+    };
+
+    if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'mock-key') {
+      return fallbackMock(text);
     }
 
     try {
@@ -51,11 +54,18 @@ export class FairBotService {
 
       const result = await model.generateContent(prompt);
       const responseText = result.response.text().trim();
-      const jsonStr = responseText.replace(/```json/g, '').replace(/```/g, '');
-      return JSON.parse(jsonStr) as BotIntent;
+      const match = responseText.match(/\{[\s\S]*\}/);
+      if (match) {
+         const jsonStr = match[0];
+         const parsed = JSON.parse(jsonStr) as BotIntent;
+         if (parsed.intent !== 'UNKNOWN') return parsed;
+      }
+      
+      // If Gemini returned UNKNOWN or failed to parse, try fallback
+      return fallbackMock(text);
     } catch (e) {
       console.error('Gemini API Error:', e);
-      return { intent: 'UNKNOWN' };
+      return fallbackMock(text);
     }
   }
 
