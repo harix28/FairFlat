@@ -2,6 +2,7 @@ services:
   - type: web
     name: fairflat-backend
     env: node
+    plan: free
     rootDir: backend
     buildCommand: npm install && npx prisma generate && npx prisma db push --accept-data-loss && npm run build
     startCommand: npm run start
@@ -19,3 +20,4 @@ databases:
   - name: fairflat-db
     databaseName: fairflat
     user: fairflat
+    plan: free
