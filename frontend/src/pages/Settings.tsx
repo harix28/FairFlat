@@ -1,15 +1,13 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
 import { User, Lock, Loader2 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useMutation } from '@tanstack/react-query';
-import { api } from '../services/api';
+import api from '../services/api';
 
 const Settings = () => {
-  const { user, login } = useAppContext();
+  const { user, setUser } = useAppContext();
   const [name, setName] = useState(user?.name || '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -22,8 +20,8 @@ const Settings = () => {
     },
     onSuccess: (data) => {
       // Update local storage and context
-      const token = localStorage.getItem('fairflat_token');
-      login(data.user, token!);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      setUser(data.user);
       setSuccessMsg('Profile updated successfully!');
       setPassword('');
       setConfirmPassword('');
@@ -61,11 +59,12 @@ const Settings = () => {
         <CardContent>
           <form onSubmit={handleUpdate} className="space-y-6">
             <div className="space-y-2">
-              <Label>Display Name</Label>
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Display Name</label>
               <div className="relative">
                 <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <Input 
-                  className="pl-9" 
+                <input 
+                  type="text"
+                  className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pl-9" 
                   value={name} 
                   onChange={(e) => setName(e.target.value)} 
                   required 
@@ -74,12 +73,12 @@ const Settings = () => {
             </div>
             
             <div className="space-y-2">
-              <Label>New Password (Optional)</Label>
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">New Password (Optional)</label>
               <div className="relative">
                 <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <Input 
+                <input 
                   type="password" 
-                  className="pl-9" 
+                  className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pl-9" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Leave blank to keep current"
@@ -89,12 +88,12 @@ const Settings = () => {
 
             {password && (
               <div className="space-y-2">
-                <Label>Confirm New Password</Label>
+                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Confirm New Password</label>
                 <div className="relative">
                   <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <Input 
+                  <input 
                     type="password" 
-                    className="pl-9" 
+                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pl-9" 
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
