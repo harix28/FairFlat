@@ -143,7 +143,7 @@ export function FairBot() {
                       }
 
                       expenseMutation.mutate({
-                        title: 'Added by FairBot',
+                        title: intent.title || 'Added by FairBot',
                         amount: intent.amount,
                         payerId: payerId,
                         splitType: intent.splitType || 'equal',

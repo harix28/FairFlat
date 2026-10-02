@@ -9,7 +9,13 @@ import { useAppContext } from '../context/AppContext';
 
 const Expenses = () => {
   const [search, setSearch] = useState('');
-  const { activeGroup } = useAppContext();
+  const { activeGroup, user } = useAppContext();
+  
+  const getUserName = (userId: string) => {
+    if (userId === user?.id) return 'You';
+    const member = activeGroup?.members?.find(m => m.user.id === userId);
+    return member?.user.name || 'Someone';
+  };
   
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard', activeGroup?.id],
@@ -72,7 +78,7 @@ const Expenses = () => {
                 <div>
                   <h4 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors text-lg">{expense.title}</h4>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-sm text-slate-500">{expense.payerId} paid ₹{expense.amount.toLocaleString()}</span>
+                    <span className="text-sm text-slate-500">{getUserName(expense.payerId)} paid ₹{expense.amount.toLocaleString()}</span>
                     <span className="w-1 h-1 rounded-full bg-slate-300"></span>
                     <span className="text-sm text-slate-500 capitalize">{expense.splitType} Split</span>
                   </div>

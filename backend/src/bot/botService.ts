@@ -6,6 +6,7 @@ export interface BotIntent {
   intent: 'CREATE_EXPENSE' | 'GET_BALANCE' | 'UNKNOWN';
   amount?: number;
   category?: string;
+  title?: string;
   payer?: string;
   participants?: string[];
   splitType?: string;
@@ -29,8 +30,15 @@ export class FairBotService {
         if (lowerText.includes('rahul')) participants.push('Rahul');
         if (lowerText.includes('aman')) participants.push('Aman');
         
+        let title = 'Miscellaneous';
+        const forIndex = lowerText.indexOf(' for ');
+        if (forIndex !== -1) {
+          title = input.substring(forIndex + 5).trim();
+          title = title.charAt(0).toUpperCase() + title.slice(1);
+        }
+
         // If they didn't specify anyone, default to "everyone" in a real app, but for now just empty array which gets handled by frontend
-        return { intent: 'CREATE_EXPENSE', amount, payer, participants, splitType: 'equal' };
+        return { intent: 'CREATE_EXPENSE', amount, payer, participants, splitType: 'equal', title };
       }
       if (lowerText.includes('owe me') || lowerText.includes('my balance') || lowerText.includes('how much do i owe')) return { intent: 'GET_BALANCE' };
       return { intent: 'UNKNOWN' };
