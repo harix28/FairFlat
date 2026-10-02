@@ -1,4 +1,4 @@
-import { ArrowUpRight, ArrowDownRight, CreditCard, Utensils, Loader2 } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, CreditCard, Utensils, Loader2, Users, Plus, Share2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Link } from 'react-router-dom';
@@ -7,13 +7,58 @@ import { fetchDashboardData } from '../services/api';
 import { useAppContext } from '../context/AppContext';
 
 const Dashboard = () => {
-  const { user, activeGroup } = useAppContext();
+  const { user, activeGroup, groups } = useAppContext();
   
   const { data, isLoading, error } = useQuery({
     queryKey: ['dashboard', activeGroup?.id],
     queryFn: () => fetchDashboardData(activeGroup?.id || ''),
     enabled: !!activeGroup?.id
   });
+
+  const currentUserName = user?.name || 'User';
+
+  // Onboarding state: No groups yet
+  if (!activeGroup && groups.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-4">
+        <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-6">
+          <Users className="w-10 h-10 text-blue-600" />
+        </div>
+        <h1 className="text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">Welcome to FairFlat, {currentUserName}! 👋</h1>
+        <p className="text-lg text-slate-500 max-w-lg mb-8 leading-relaxed">
+          You don't have any groups yet. Create a new group to start tracking expenses and splitting bills with your friends or roommates.
+        </p>
+        <div className="flex gap-4">
+          <Button asChild size="lg" className="rounded-full shadow-lg hover:shadow-xl transition-all">
+            <Link to="/app/groups" className="flex items-center gap-2">
+              <Plus className="w-5 h-5" /> Create a Group
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Onboarding state: Group exists but only 1 member (themselves)
+  if (activeGroup && (!activeGroup.members || activeGroup.members.length <= 1)) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-4">
+        <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
+          <Share2 className="w-10 h-10 text-emerald-600" />
+        </div>
+        <h1 className="text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">You're almost there! 🚀</h1>
+        <p className="text-lg text-slate-500 max-w-lg mb-8 leading-relaxed">
+          Your group <strong>"{activeGroup.name}"</strong> is ready, but it's just you right now! Invite your friends using the code below so you can start splitting expenses.
+        </p>
+        <Card className="bg-slate-50 border-dashed border-2 border-slate-200 mb-8 w-full max-w-md">
+          <CardContent className="pt-6">
+            <div className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-2">Group Invite Code</div>
+            <div className="text-4xl font-mono font-bold text-slate-900 tracking-[0.2em]">{activeGroup.inviteCode}</div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -34,7 +79,6 @@ const Dashboard = () => {
   let owedCount = 0;
   
   const currentUser = user?.id || 'Unknown';
-  const currentUserName = user?.name || 'User';
   const myBalance = data.balances[currentUser] || 0;
 
   data.settlements.forEach((s: any) => {
