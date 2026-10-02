@@ -1,13 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { Bot, Send, X, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
-import { botApi } from '../services/api';
+import { botApi, expenseApi } from '../services/api';
+import { useAppContext } from '../context/AppContext';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface Message {
   id: string;
   sender: 'bot' | 'user';
   text: string;
   isActionable?: boolean;
+  actionData?: any;
 }
 
 export function FairBot() {
@@ -18,6 +21,23 @@ export function FairBot() {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { activeGroup, user } = useAppContext();
+  const queryClient = useQueryClient();
+
+  const expenseMutation = useMutation({
+    mutationFn: async (data: any) => {
+      if (!activeGroup?.id) throw new Error('No active group');
+      return expenseApi.createExpense(activeGroup.id, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      setMessages(prev => [...prev, { id: Date.now().toString(), sender: 'bot', text: 'Expense successfully added! 🎉' }]);
+    },
+    onError: () => {
+      setMessages(prev => [...prev, { id: Date.now().toString(), sender: 'bot', text: 'Failed to add the expense. Please try again or use the manual form.' }]);
+    }
+  });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -47,11 +67,11 @@ export function FairBot() {
         botResponse = `Got it. So ${intent.payer} paid ₹${intent.amount} which is shared by ${intent.participants.join(', ')}. Should I save this?`;
         isActionable = true;
       } else if (intent.intent === 'GET_BALANCE') {
-        botResponse = "You currently owe ₹850, and you are owed ₹2,100 overall. Do you want to settle up now?";
+        botResponse = "You can check your balances in the Dashboard. The AI is still learning to read live balances!";
       }
 
       setTimeout(() => {
-        setMessages(prev => [...prev, { id: Date.now().toString(), sender: 'bot', text: botResponse, isActionable }]);
+        setMessages(prev => [...prev, { id: Date.now().toString(), sender: 'bot', text: botResponse, isActionable, actionData: intent }]);
         setIsTyping(false);
       }, 1000); // Simulate network delay
     } catch (err) {
@@ -100,8 +120,47 @@ export function FairBot() {
               {msg.text}
               {msg.isActionable && (
                 <div className="mt-3 flex gap-2">
-                  <Button size="sm" className="h-8 text-xs bg-emerald-500 hover:bg-emerald-600 w-full text-white">Confirm</Button>
-                  <Button size="sm" variant="outline" className="h-8 text-xs w-full">Edit</Button>
+                  <Button 
+                    size="sm" 
+                    className="h-8 text-xs bg-emerald-500 hover:bg-emerald-600 w-full text-white"
+                    onClick={() => {
+                      if (!activeGroup) {
+                         setMessages(prev => [...prev, { id: Date.now().toString(), sender: 'bot', text: 'You need to select a group first!' }]);
+                         return;
+                      }
+                      
+                      const intent = msg.actionData;
+                      if (!intent) return;
+
+                      // Map string names back to user objects
+                      // Mock approach: just assume all members of activeGroup participate
+                      const participants = activeGroup.members?.map(m => ({ userId: m.user.id })) || [];
+                      let payerId = user?.id; // default to current user
+                      
+                      if (intent.payer.toLowerCase() !== 'you' && intent.payer.toLowerCase() !== 'i') {
+                        const matchedMember = activeGroup.members?.find(m => m.user.name.toLowerCase() === intent.payer.toLowerCase());
+                        if (matchedMember) payerId = matchedMember.user.id;
+                      }
+
+                      expenseMutation.mutate({
+                        title: 'Added by FairBot',
+                        amount: intent.amount,
+                        payerId: payerId,
+                        splitType: intent.splitType || 'equal',
+                        participants: participants
+                      });
+                      
+                      // Remove buttons
+                      setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isActionable: false } : m));
+                    }}
+                    disabled={expenseMutation.isPending}
+                  >
+                    {expenseMutation.isPending ? 'Saving...' : 'Confirm'}
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-8 text-xs w-full" onClick={() => {
+                    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isActionable: false } : m));
+                    setMessages(prev => [...prev, { id: Date.now().toString(), sender: 'bot', text: 'Action cancelled.' }]);
+                  }}>Cancel</Button>
                 </div>
               )}
             </div>
