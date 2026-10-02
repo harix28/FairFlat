@@ -4,16 +4,16 @@ import { AuthRequest } from '../middleware/auth';
 
 export const getMessages = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const groupId = req.params.groupId;
+    const groupId = String(req.params.groupId);
     
     const messages = await prisma.message.findMany({
       where: { groupId },
       include: { user: { select: { id: true, name: true } } },
-      orderBy: { createdAt: 'desc' }, // fetch newest first
-      take: 50 // limit history to 50 for MVP
+      orderBy: { createdAt: 'desc' },
+      take: 50
     });
     
-    res.json(messages.reverse()); // send chronologically
+    res.json(messages.reverse());
   } catch (error) {
     console.error('Error fetching messages:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -22,7 +22,7 @@ export const getMessages = async (req: AuthRequest, res: Response): Promise<void
 
 export const createMessage = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const groupId = req.params.groupId;
+    const groupId = String(req.params.groupId);
     const userId = req.user?.userId;
     const { text } = req.body;
 
@@ -53,7 +53,8 @@ export const createMessage = async (req: AuthRequest, res: Response): Promise<vo
 
 export const deleteMessage = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { messageId, groupId } = req.params;
+    const messageId = String(req.params.messageId);
+    const groupId = String(req.params.groupId);
     const userId = req.user?.userId;
     
     const message = await prisma.message.findUnique({ where: { id: messageId } });

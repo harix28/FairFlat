@@ -131,7 +131,8 @@ export const getGroupExpenses = async (req: AuthRequest, res: Response): Promise
 
 export const deleteExpense = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { groupId, expenseId } = req.params;
+    const groupId = String(req.params.groupId);
+    const expenseId = String(req.params.expenseId);
     const userId = req.user?.userId;
 
     const expense = await prisma.expense.findUnique({ where: { id: expenseId } });

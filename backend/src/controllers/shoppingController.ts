@@ -4,7 +4,7 @@ import { AuthRequest } from '../middleware/auth';
 
 export const createShoppingItem = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const groupId = req.params.groupId;
+    const groupId = String(req.params.groupId);
     const { name, quantity, category, priority } = req.body;
     
     const item = await prisma.shoppingItem.create({
@@ -30,7 +30,7 @@ export const createShoppingItem = async (req: AuthRequest, res: Response): Promi
 
 export const getShoppingItems = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const groupId = req.params.groupId;
+    const groupId = String(req.params.groupId);
     
     const items = await prisma.shoppingItem.findMany({
       where: { groupId },
@@ -47,15 +47,12 @@ export const getShoppingItems = async (req: AuthRequest, res: Response): Promise
 
 export const updateShoppingItem = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { itemId } = req.params;
-    const { status, purchasedBy } = req.body; // 'pending', 'purchased'
+    const itemId = String(req.params.itemId);
+    const { status, purchasedBy } = req.body;
     
     const item = await prisma.shoppingItem.update({
       where: { id: itemId },
-      data: { 
-        status,
-        purchasedBy
-      },
+      data: { status, purchasedBy },
       include: { purchaser: { select: { id: true, name: true } } }
     });
 
@@ -72,11 +69,10 @@ export const updateShoppingItem = async (req: AuthRequest, res: Response): Promi
 
 export const deleteShoppingItem = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { itemId, groupId } = req.params;
+    const itemId = String(req.params.itemId);
+    const groupId = String(req.params.groupId);
     
-    await prisma.shoppingItem.delete({
-      where: { id: itemId }
-    });
+    await prisma.shoppingItem.delete({ where: { id: itemId } });
 
     if ((req as any).io) {
       (req as any).io.to(groupId).emit('shopping_item_deleted', itemId);

@@ -4,10 +4,9 @@ import { AuthRequest } from '../middleware/auth';
 
 export const createChore = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const groupId = req.params.groupId;
+    const groupId = String(req.params.groupId);
     const { title, description, frequency, priority, dueDate, assigneeIds } = req.body;
     
-    // Create the chore
     const chore = await prisma.chore.create({
       data: {
         groupId,
@@ -19,14 +18,10 @@ export const createChore = async (req: AuthRequest, res: Response): Promise<void
       }
     });
 
-    // Create assignments if provided
     if (assigneeIds && assigneeIds.length > 0) {
       for (const userId of assigneeIds) {
         await prisma.choreAssignment.create({
-          data: {
-            choreId: chore.id,
-            userId
-          }
+          data: { choreId: chore.id, userId }
         });
       }
     }
@@ -53,7 +48,7 @@ export const createChore = async (req: AuthRequest, res: Response): Promise<void
 
 export const getChores = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const groupId = req.params.groupId;
+    const groupId = String(req.params.groupId);
     
     const chores = await prisma.chore.findMany({
       where: { groupId },
@@ -74,8 +69,8 @@ export const getChores = async (req: AuthRequest, res: Response): Promise<void> 
 
 export const updateChoreAssignment = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { assignmentId } = req.params;
-    const { status } = req.body; // 'completed', 'skipped', 'pending'
+    const assignmentId = String(req.params.assignmentId);
+    const { status } = req.body;
     
     const assignment = await prisma.choreAssignment.update({
       where: { id: assignmentId },
@@ -83,12 +78,11 @@ export const updateChoreAssignment = async (req: AuthRequest, res: Response): Pr
         status,
         completedAt: status === 'completed' ? new Date() : null
       },
-      include: {
-        chore: true
-      }
+      include: { chore: true }
     });
 
     if ((req as any).io) {
+      // assignment.chore is included so groupId is available
       (req as any).io.to(assignment.chore.groupId).emit('chore_updated', assignment);
     }
 
@@ -101,11 +95,10 @@ export const updateChoreAssignment = async (req: AuthRequest, res: Response): Pr
 
 export const deleteChore = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { choreId, groupId } = req.params;
+    const choreId = String(req.params.choreId);
+    const groupId = String(req.params.groupId);
     
-    await prisma.chore.delete({
-      where: { id: choreId }
-    });
+    await prisma.chore.delete({ where: { id: choreId } });
 
     if ((req as any).io) {
       (req as any).io.to(groupId).emit('chore_deleted', choreId);

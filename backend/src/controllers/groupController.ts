@@ -132,7 +132,7 @@ export const joinGroup = async (req: AuthRequest, res: Response): Promise<void> 
 
 export const updateGroup = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { groupId } = req.params;
+    const groupId = String(req.params.groupId);
     const { name } = req.body;
     const userId = req.user?.userId;
 
@@ -164,7 +164,7 @@ export const updateGroup = async (req: AuthRequest, res: Response): Promise<void
 
 export const leaveGroup = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { groupId } = req.params;
+    const groupId = String(req.params.groupId);
     const userId = req.user?.userId;
 
     if (!userId || !groupId) {
