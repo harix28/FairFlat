@@ -1,0 +1,11 @@
+{
+  "name": "fairflat-glitch",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "cd backend && npm run start",
+    "install": "cd backend && npm install && npx prisma generate && npx prisma db push --accept-data-loss && npm run build"
+  },
+  "engines": {
+    "node": "20.x"
+  }
+}
