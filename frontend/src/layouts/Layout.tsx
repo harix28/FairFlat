@@ -31,10 +31,28 @@ const Layout = () => {
     if (user) {
       socket.emit('join_user', user.id);
     }
+    
+    // Connect to active group channel
+    const activeGroupId = localStorage.getItem('fairflat_active_group');
+    if (activeGroupId) {
+      socket.emit('join_group', activeGroupId);
+    }
 
     socket.on('new_notification', () => {
       setHasNewNotification(true);
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    });
+
+    socket.on('new_expense', () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard', activeGroupId] });
+    });
+
+    socket.on('expense_deleted', () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard', activeGroupId] });
+    });
+
+    socket.on('payment_recorded', () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard', activeGroupId] });
     });
 
     return () => {
@@ -163,9 +181,9 @@ const Layout = () => {
               </>
             )}
 
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 text-white flex items-center justify-center font-medium shadow-sm">
+            <Link to="/app/settings" className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 text-white flex items-center justify-center font-medium shadow-sm hover:opacity-90 transition-opacity">
               {user?.name?.charAt(0) || 'U'}
-            </div>
+            </Link>
             <button 
               onClick={() => logout()}
               className="md:hidden p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors ml-1"

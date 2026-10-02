@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../prisma';
+import { AuthRequest } from '../middleware/auth';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
 
@@ -70,6 +71,38 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     });
   } catch (error: any) {
     console.error('Login error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const updateProfile = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+    const { name, password } = req.body;
+
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const data: any = {};
+    if (name) data.name = name;
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      data.passwordHash = await bcrypt.hash(password, salt);
+    }
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data
+    });
+
+    res.status(200).json({
+      message: 'Profile updated successfully',
+      user: { id: user.id, name: user.name, email: user.email },
+    });
+  } catch (error: any) {
+    console.error('Update profile error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

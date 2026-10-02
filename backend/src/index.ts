@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import http from 'http';
 import { Server } from 'socket.io';
-import { register, login } from './controllers/authController';
+import { register, login, updateProfile } from './controllers/authController';
 import { createExpense, getGroupExpenses, deleteExpense } from './controllers/expenseController';
 import { getGroupBalancesAndSettlements } from './controllers/settlementController';
 import { recordPayment } from './controllers/paymentController';
@@ -12,8 +12,12 @@ import { getUserNotifications, markNotificationAsRead, markAllAsRead, sendRemind
 import { createRecurringExpense, getGroupRecurringExpenses } from './controllers/recurringExpenseController';
 import { FairBotService } from './bot/botService';
 import { authenticateToken } from './middleware/auth';
+import { initCronJobs } from './cron/recurringExpenseJob';
 
 dotenv.config();
+
+// Start cron jobs
+initCronJobs();
 
 const app = express();
 const server = http.createServer(app);
@@ -40,6 +44,7 @@ app.get('/api/health', (req, res) => {
 // Auth Routes
 app.post('/api/auth/register', register);
 app.post('/api/auth/login', login);
+app.put('/api/auth/profile', authenticateToken, updateProfile);
 
 // Group Routes (Protected)
 app.post('/api/groups', authenticateToken, createGroup);

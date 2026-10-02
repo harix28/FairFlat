@@ -148,6 +148,10 @@ export const deleteExpense = async (req: AuthRequest, res: Response): Promise<vo
 
     await prisma.expense.delete({ where: { id: expenseId } });
 
+    if ((req as any).io) {
+      (req as any).io.to(groupId).emit('expense_deleted', expenseId);
+    }
+
     res.status(200).json({ message: 'Expense deleted successfully' });
   } catch (error: any) {
     console.error('Error deleting expense:', error);
