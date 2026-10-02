@@ -1,6 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ToastProvider } from './components/ui/Toast';
 import Dashboard from './pages/Dashboard';
+
 import Groups from './pages/Groups';
 import Expenses from './pages/Expenses';
 import AddExpense from './pages/AddExpense';
@@ -10,6 +12,8 @@ import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import Chores from './pages/Chores';
 import Shopping from './pages/Shopping';
+import Chat from './pages/Chat';
+import Activity from './pages/Activity';
 import Layout from './layouts/Layout';
 import LandingPage from './pages/LandingPage';
 import Auth from './pages/Auth';
@@ -20,6 +24,7 @@ const queryClient = new QueryClient();
 
 function App() {
   return (
+    <ToastProvider>
     <QueryClientProvider client={queryClient}>
       <Router>
         <AppProvider>
@@ -39,6 +44,8 @@ function App() {
               <Route path="settings" element={<Settings />} />
               <Route path="chores" element={<Chores />} />
               <Route path="shopping" element={<Shopping />} />
+              <Route path="chat" element={<Chat />} />
+<Route path="activity" element={<Activity />} />
             </Route>
           </Route>
 
@@ -46,6 +53,7 @@ function App() {
         </Routes>
         </AppProvider>
       </Router>
+    </ToastProvider>
     </QueryClientProvider>
   );
 }

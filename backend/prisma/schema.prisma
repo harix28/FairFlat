@@ -23,6 +23,8 @@ model User {
   notifications  Notification[]
   choreAssignments ChoreAssignment[]
   purchasedItems ShoppingItem[] @relation("PurchasedBy")
+  activities     ActivityLog[]
+  messages       Message[]
 }
 
 model Group {
@@ -37,6 +39,8 @@ model Group {
   recurringExpenses RecurringExpense[]
   chores      Chore[]
   shoppingItems ShoppingItem[]
+  activityLogs ActivityLog[]
+  messages    Message[]
 }
 
 model GroupMember {
@@ -193,4 +197,31 @@ model ShoppingItem {
   group       Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
   purchaser   User?    @relation("PurchasedBy", fields: [purchasedBy], references: [id])
 }
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  groupId   String
+  userId    String
+  action    String   // e.g., 'created', 'updated', 'deleted'
+  entity    String   // e.g., 'expense', 'chore', 'shopping', 'settlement'
+  entityId  String?
+  details   String?  // JSON string or short description
+  createdAt DateTime @default(now())
+
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  groupId   String
+  userId    String
+  text      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 

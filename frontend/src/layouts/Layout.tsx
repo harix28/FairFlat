@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Home, Users, Receipt, PieChart, LogOut, Bell, Repeat, BarChart3, ListTodo, ShoppingCart } from 'lucide-react';
+import { Home, Users, Receipt, PieChart, LogOut, Bell, Repeat, BarChart3, ListTodo, ShoppingCart, MessageSquare } from 'lucide-react';
 import { FairBot } from '../components/FairBot';
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
@@ -67,6 +67,7 @@ const Layout = () => {
     { name: 'Recurring', path: '/app/recurring', icon: Repeat },
     { name: 'Chores', path: '/app/chores', icon: ListTodo },
     { name: 'Shopping', path: '/app/shopping', icon: ShoppingCart },
+    { name: 'Chat', path: '/app/chat', icon: MessageSquare },
     { name: 'Analytics', path: '/app/analytics', icon: BarChart3 },
     { name: 'Groups', path: '/app/groups', icon: Users },
   ];

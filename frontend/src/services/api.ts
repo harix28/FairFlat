@@ -34,10 +34,12 @@ export const expenseApi = {
   createExpense: async (groupId: string, data: any) => api.post(`/groups/${groupId}/expenses`, data),
   deleteExpense: async (groupId: string, expenseId: string) => api.delete(`/groups/${groupId}/expenses/${expenseId}`),
   getBalances: async (groupId: string) => api.get(`/groups/${groupId}/balances`),
+  getBalanceDetails: async (groupId: string) => api.get(`/groups/${groupId}/balance-details`),
   recordPayment: async (groupId: string, data: any) => api.post(`/groups/${groupId}/payments`, data),
   getRecurring: async (groupId: string) => api.get(`/groups/${groupId}/recurring`),
   createRecurring: async (groupId: string, data: any) => api.post(`/groups/${groupId}/recurring`, data),
 };
+
 
 export const notificationApi = {
   getNotifications: async () => api.get('/notifications'),
@@ -46,9 +48,17 @@ export const notificationApi = {
   markAllAsRead: async () => api.put('/notifications/read-all'),
 };
 
+export const choreApi = {
+  getChores: async (groupId: string) => api.get(`/groups/${groupId}/chores`)
+};
+
+export const shoppingApi = {
+  getItems: async (groupId: string) => api.get(`/groups/${groupId}/shopping`)
+};
+
 export const botApi = {
   chat: async (data: any) => api.post('/bot/chat', data),
-  scanReceipt: async (base64Image: string, mimeType: string) => api.post('/bot/scan', { base64Image, mimeType }),
+  scanReceipt: async (base64Image: string, mimeType: string) => api.post('/bot/scan', { base64Image, mimeType })
 };
 
 export const scanReceipt = async (imageFile: File) => {

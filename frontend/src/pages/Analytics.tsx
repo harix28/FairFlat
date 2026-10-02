@@ -1,25 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
-import { fetchDashboardData } from '../services/api';
+import { getGroupStats } from '../services/statsApi';
 import { useAppContext } from '../context/AppContext';
 import { Loader2 } from 'lucide-react';
-
-const COLORS = ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444', '#f59e0b'];
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
 const Analytics = () => {
   const { activeGroup, user } = useAppContext();
 
-  const getUserName = (userId: string) => {
-    if (userId === user?.id) return 'You';
-    const member = activeGroup?.members?.find((m: any) => m.user.id === userId);
-    return member ? member.user.name : userId.substring(0, 4);
-  };
-
   const { data, isLoading } = useQuery({
-    queryKey: ['dashboard', activeGroup?.id],
-    queryFn: () => fetchDashboardData(activeGroup?.id || ''),
-    enabled: !!activeGroup?.id
+    queryKey: ['stats', activeGroup?.id],
+    queryFn: () => getGroupStats(activeGroup?.id || ''),
+    enabled: !!activeGroup?.id,
   });
 
   if (isLoading || !data) {
@@ -30,38 +22,17 @@ const Analytics = () => {
     );
   }
 
-  // Calculate dynamic pie chart data based on expenses
-  const categoryTotals: Record<string, number> = {};
-  data.expenses.forEach((e: any) => {
-    const cat = e.title.includes('Restaurant') || e.title.includes('Food') ? 'Food & Dining' 
-      : e.title.includes('Grocery') ? 'Groceries'
-      : e.title.includes('Rent') ? 'Housing'
-      : 'General';
-    categoryTotals[cat] = (categoryTotals[cat] || 0) + e.amount;
-  });
+  const {
+    totalExpenses = 0,
+    totalPaid = 0,
+    totalChores = 0,
+    completedChores = 0,
+    totalShoppingSpend = 0,
+    expenseTrend = [],
+  } = data;
 
-  const pieData = Object.keys(categoryTotals).map((name, idx) => ({
-    name,
-    value: categoryTotals[name],
-    color: COLORS[idx % COLORS.length]
-  }));
-
-  // Calculate dynamic bar chart data (Paid vs Fair Share)
-  const userStats: Record<string, { name: string; contribution: number; fairShare: number }> = {};
-  
-  data.expenses.forEach((e: any) => {
-    // Tally contributions
-    if (!userStats[e.payerId]) userStats[e.payerId] = { name: getUserName(e.payerId), contribution: 0, fairShare: 0 };
-    userStats[e.payerId].contribution += e.amount;
-
-    // Tally fair shares
-    e.participants.forEach((p: any) => {
-      if (!userStats[p.userId]) userStats[p.userId] = { name: getUserName(p.userId), contribution: 0, fairShare: 0 };
-      userStats[p.userId].fairShare += p.calculatedAmount;
-    });
-  });
-
-  const barData = Object.values(userStats);
+  // Prepare data for the expense trend line chart (month vs amount)
+  const lineData = expenseTrend.map((item: any) => ({ month: item.month, amount: item.amount }));
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -70,68 +41,56 @@ const Analytics = () => {
         <p className="text-slate-500 mt-1">Discover your spending habits and group trends.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Spending by Category</CardTitle>
-            <CardDescription>Where the group's money went this month</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center justify-center">
-            <div className="h-64 w-full">
-              {pieData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={80}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {pieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value: any) => `₹${value.toLocaleString()}`} />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-slate-400">No data available</div>
-              )}
-            </div>
-            <div className="flex flex-wrap justify-center gap-4 mt-4 w-full">
-              {pieData.map((item, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
-                  <span className="text-sm font-medium text-slate-600">{item.name}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Key Metrics */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Key Metrics</CardTitle>
+          <CardDescription>Overall group statistics</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-4 p-4">
+          <div className="bg-blue-50 rounded p-3">
+            <h3 className="text-sm font-medium text-slate-600">Total Expenses</h3>
+            <p className="text-xl font-bold text-slate-900">₹{totalExpenses.toLocaleString()}</p>
+          </div>
+          <div className="bg-green-50 rounded p-3">
+            <h3 className="text-sm font-medium text-slate-600">Total Paid (You)</h3>
+            <p className="text-xl font-bold text-slate-900">₹{totalPaid.toLocaleString()}</p>
+          </div>
+          <div className="bg-purple-50 rounded p-3">
+            <h3 className="text-sm font-medium text-slate-600">Total Chores</h3>
+            <p className="text-xl font-bold text-slate-900">{totalChores}</p>
+          </div>
+          <div className="bg-yellow-50 rounded p-3">
+            <h3 className="text-sm font-medium text-slate-600">Completed Chores</h3>
+            <p className="text-xl font-bold text-slate-900">{completedChores}</p>
+          </div>
+          <div className="bg-indigo-50 rounded p-3">
+            <h3 className="text-sm font-medium text-slate-600">Shopping Spend</h3>
+            <p className="text-xl font-bold text-slate-900">{totalShoppingSpend} items</p>
+          </div>
+        </CardContent>
+      </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Contribution vs Fair Share</CardTitle>
-            <CardDescription>Who paid vs who actually consumed</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64 w-full mt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={barData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                  <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `₹${val/1000}k`} />
-                  <Tooltip cursor={{ fill: '#f1f5f9' }} formatter={(value: any) => `₹${value.toLocaleString()}`} />
-                  <Bar dataKey="contribution" name="Paid" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="fairShare" name="Fair Share" fill="#f87171" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Expense Trend Line Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Expense Trend</CardTitle>
+          <CardDescription>Monthly expense progression</CardDescription>
+        </CardHeader>
+        <CardContent className="p-4">
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={lineData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis tickFormatter={(val) => `₹${val / 1000}k`} />
+                <Tooltip formatter={(value: any) => `₹${value.toLocaleString()}`} />
+                <Line type="monotone" dataKey="amount" name="Amount" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 6 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

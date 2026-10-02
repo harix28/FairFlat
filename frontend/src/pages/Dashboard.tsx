@@ -5,12 +5,17 @@ import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchDashboardData, expenseApi, notificationApi } from '../services/api';
 import { useAppContext } from '../context/AppContext';
+import { useRealtimeUpdates } from '../hooks/useRealtimeUpdates';
+import BalanceTable from '../components/ui/BalanceTable';
+import ChoresSummary from '../components/ui/ChoresSummary';
+import ShoppingSummary from '../components/ui/ShoppingSummary';
 import { useState } from 'react';
 
 const Dashboard = () => {
   const queryClient = useQueryClient();
   const [processingId, setProcessingId] = useState<string | null>(null);
   const { user, activeGroup, groups } = useAppContext();
+  useRealtimeUpdates(activeGroup?.id);
   const [reminded, setReminded] = useState<Record<string, boolean>>({});
   
   const { data, isLoading, error } = useQuery({
@@ -201,6 +206,13 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+{/* Summaries */}
+<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+  <BalanceTable groupId={activeGroup?.id || ''} />
+  <ChoresSummary groupId={activeGroup?.id || ''} />
+  <ShoppingSummary groupId={activeGroup?.id || ''} />
+</div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Activity */}

@@ -6,12 +6,17 @@ import { Server } from 'socket.io';
 import { register, login, updateProfile } from './controllers/authController';
 import { createExpense, getGroupExpenses, deleteExpense } from './controllers/expenseController';
 import { getGroupBalancesAndSettlements } from './controllers/settlementController';
+import { getBalanceDetails } from './controllers/balanceDetailsController';
 import { recordPayment } from './controllers/paymentController';
 import { createGroup, getUserGroups, joinGroup, updateGroup, leaveGroup } from './controllers/groupController';
 import { getUserNotifications, markNotificationAsRead, markAllAsRead, sendReminder } from './controllers/notificationController';
 import { createRecurringExpense, getGroupRecurringExpenses } from './controllers/recurringExpenseController';
 import { createChore, getChores, updateChoreAssignment, deleteChore } from './controllers/choreController';
 import { createShoppingItem, getShoppingItems, updateShoppingItem, deleteShoppingItem } from './controllers/shoppingController';
+import { getGroupStats } from './controllers/statsController';
+import { getDebtSimplification } from './controllers/debtSimplifyController';
+import { getMessages, createMessage, deleteMessage } from './controllers/chatController';
+import { getActivityLogs } from './controllers/activityController';
 import { FairBotService } from './bot/botService';
 import { authenticateToken } from './middleware/auth';
 import { initCronJobs } from './cron/recurringExpenseJob';
@@ -64,6 +69,7 @@ app.get('/api/groups/:groupId/recurring', authenticateToken, getGroupRecurringEx
 
 // Settlement Routes (Protected)
 app.get('/api/groups/:groupId/balances', authenticateToken, getGroupBalancesAndSettlements);
+app.get('/api/groups/:groupId/balance-details', authenticateToken, getBalanceDetails);
 app.post('/api/groups/:groupId/payments', authenticateToken, recordPayment);
 
 // Chores Routes (Protected)
@@ -77,6 +83,17 @@ app.post('/api/groups/:groupId/shopping', authenticateToken, createShoppingItem)
 app.get('/api/groups/:groupId/shopping', authenticateToken, getShoppingItems);
 app.put('/api/groups/:groupId/shopping/:itemId', authenticateToken, updateShoppingItem);
 app.delete('/api/groups/:groupId/shopping/:itemId', authenticateToken, deleteShoppingItem);
+
+// Chat Routes (Protected)
+app.get('/api/groups/:groupId/messages', authenticateToken, getMessages);
+app.post('/api/groups/:groupId/messages', authenticateToken, createMessage);
+app.delete('/api/groups/:groupId/messages/:messageId', authenticateToken, deleteMessage);
+
+// Activity Route (Protected)
+app.get('/api/groups/:groupId/activity', authenticateToken, getActivityLogs);
+
+// Stats Route (Protected)
+app.get('/api/groups/:groupId/stats', authenticateToken, getGroupStats);
 
 // Notification Routes (Protected)
 app.get('/api/notifications', authenticateToken, getUserNotifications);
