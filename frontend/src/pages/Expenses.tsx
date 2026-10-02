@@ -16,6 +16,16 @@ const Expenses = () => {
     const member = activeGroup?.members?.find(m => m.user.id === userId);
     return member?.user.name || 'Someone';
   };
+
+  const getMonth = (dateStr: string) => {
+    try { return new Date(dateStr).toLocaleString('default', { month: 'short' }); } 
+    catch { return 'M'; }
+  };
+  
+  const getDay = (dateStr: string) => {
+    try { return new Date(dateStr).getDate().toString().padStart(2, '0'); } 
+    catch { return '01'; }
+  };
   
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard', activeGroup?.id],
@@ -86,10 +96,10 @@ const Expenses = () => {
           <Card key={i} className="hover:border-blue-200 transition-colors cursor-pointer group">
             <CardContent className="p-4 sm:p-5 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center bg-slate-100 text-slate-600`}>
-                  <span className="text-xs font-semibold uppercase">{expense.date.split(',')[0].split(' ')[0] || 'Day'}</span>
+                <div className="w-12 h-12 rounded-xl flex flex-col items-center justify-center bg-slate-100 text-slate-600 flex-shrink-0">
+                  <span className="text-xs font-semibold uppercase">{getMonth(expense.date)}</span>
                   <span className="text-lg font-bold leading-none">
-                    {expense.date.split(',')[0].split(' ')[1] || '01'}
+                    {getDay(expense.date)}
                   </span>
                 </div>
                 <div>
