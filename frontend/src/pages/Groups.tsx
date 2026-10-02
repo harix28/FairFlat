@@ -8,6 +8,8 @@ import { groupApi } from '../services/api';
 const Groups = () => {
   const { user, activeGroup, refreshGroups } = useAppContext();
   const [copied, setCopied] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [editGroupName, setEditGroupName] = useState('');
   
   // State for creating/joining
   const [newGroupName, setNewGroupName] = useState('');
@@ -20,6 +22,35 @@ const Groups = () => {
     navigator.clipboard.writeText(activeGroup.inviteCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleUpdateGroup = async () => {
+    if (!activeGroup || !editGroupName.trim()) return;
+    setIsSubmitting(true);
+    try {
+      await groupApi.updateGroup(activeGroup.id, { name: editGroupName });
+      await refreshGroups();
+      setShowSettings(false);
+    } catch (err) {
+      alert('Failed to update group');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleLeaveGroup = async () => {
+    if (!activeGroup) return;
+    if (!confirm('Are you sure you want to leave this group?')) return;
+    setIsSubmitting(true);
+    try {
+      await groupApi.leaveGroup(activeGroup.id);
+      await refreshGroups();
+      setShowSettings(false);
+    } catch (err) {
+      alert('Failed to leave group');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCreateGroup = async (e: React.FormEvent) => {
@@ -126,7 +157,10 @@ const Groups = () => {
           <p className="text-slate-500 mt-1">Manage your flatmates and group settings.</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" onClick={() => alert('Group Settings are coming soon!')}>
+          <Button variant="outline" onClick={() => {
+            setEditGroupName(activeGroup.name);
+            setShowSettings(true);
+          }}>
             <Settings className="w-4 h-4 mr-2" />
             Settings
           </Button>
@@ -215,6 +249,45 @@ const Groups = () => {
           </Card>
         </div>
       </div>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <>
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40" onClick={() => setShowSettings(false)} />
+          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-xl z-50 w-full max-w-md overflow-hidden">
+            <div className="p-6 border-b border-slate-100">
+              <h3 className="text-xl font-bold text-slate-800">Group Settings</h3>
+            </div>
+            <div className="p-6 space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Group Name</label>
+                <input
+                  type="text"
+                  value={editGroupName}
+                  onChange={e => setEditGroupName(e.target.value)}
+                  className="w-full p-2 border border-slate-300 rounded-md outline-none focus:border-blue-500"
+                />
+              </div>
+              
+              <div className="pt-4 border-t border-slate-100">
+                <h4 className="text-sm font-medium text-red-600 mb-2">Danger Zone</h4>
+                <Button 
+                  variant="outline" 
+                  className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                  onClick={handleLeaveGroup}
+                  disabled={isSubmitting}
+                >
+                  Leave Group
+                </Button>
+              </div>
+            </div>
+            <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+              <Button variant="ghost" onClick={() => setShowSettings(false)}>Cancel</Button>
+              <Button onClick={handleUpdateGroup} disabled={isSubmitting || !editGroupName.trim()}>Save Changes</Button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

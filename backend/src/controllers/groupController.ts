@@ -129,3 +129,56 @@ export const joinGroup = async (req: AuthRequest, res: Response): Promise<void> 
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+export const updateGroup = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { groupId } = req.params;
+    const { name } = req.body;
+    const userId = req.user?.userId;
+
+    if (!userId || !groupId || !name) {
+      res.status(400).json({ error: 'Missing parameters' });
+      return;
+    }
+
+    const membership = await prisma.groupMember.findUnique({
+      where: { userId_groupId: { userId, groupId } }
+    });
+
+    if (!membership) {
+      res.status(403).json({ error: 'Not a member of this group' });
+      return;
+    }
+
+    const updated = await prisma.group.update({
+      where: { id: groupId },
+      data: { name }
+    });
+
+    res.status(200).json(updated);
+  } catch (error: any) {
+    console.error('Update group error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const leaveGroup = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { groupId } = req.params;
+    const userId = req.user?.userId;
+
+    if (!userId || !groupId) {
+      res.status(400).json({ error: 'Missing parameters' });
+      return;
+    }
+
+    await prisma.groupMember.delete({
+      where: { userId_groupId: { userId, groupId } }
+    });
+
+    res.status(200).json({ message: 'Left group successfully' });
+  } catch (error: any) {
+    console.error('Leave group error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};

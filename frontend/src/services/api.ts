@@ -25,6 +25,8 @@ export const groupApi = {
   getGroups: async () => api.get('/groups'),
   createGroup: async (data: any) => api.post('/groups', data),
   joinGroup: async (data: any) => api.post('/groups/join', data),
+  updateGroup: async (groupId: string, data: any) => api.put(`/groups/${groupId}`, data),
+  leaveGroup: async (groupId: string) => api.delete(`/groups/${groupId}/leave`),
 };
 
 export const expenseApi = {

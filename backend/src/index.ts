@@ -7,7 +7,7 @@ import { register, login } from './controllers/authController';
 import { createExpense, getGroupExpenses } from './controllers/expenseController';
 import { getGroupBalancesAndSettlements } from './controllers/settlementController';
 import { recordPayment } from './controllers/paymentController';
-import { createGroup, getUserGroups, joinGroup } from './controllers/groupController';
+import { createGroup, getUserGroups, joinGroup, updateGroup, leaveGroup } from './controllers/groupController';
 import { getUserNotifications, markNotificationAsRead, markAllAsRead, sendReminder } from './controllers/notificationController';
 import { createRecurringExpense, getGroupRecurringExpenses } from './controllers/recurringExpenseController';
 import { FairBotService } from './bot/botService';
@@ -45,6 +45,8 @@ app.post('/api/auth/login', login);
 app.post('/api/groups', authenticateToken, createGroup);
 app.get('/api/groups', authenticateToken, getUserGroups);
 app.post('/api/groups/join', authenticateToken, joinGroup);
+app.put('/api/groups/:groupId', authenticateToken, updateGroup);
+app.delete('/api/groups/:groupId/leave', authenticateToken, leaveGroup);
 
 // Expense Routes (Protected)
 app.post('/api/groups/:groupId/expenses', authenticateToken, createExpense);

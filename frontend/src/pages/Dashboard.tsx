@@ -23,8 +23,8 @@ const Dashboard = () => {
     mutationFn: async (settlement: any) => {
       if (!activeGroup?.id) throw new Error('No active group');
       return expenseApi.recordPayment(activeGroup.id, {
-        fromUserId: settlement.fromId, // Notice my backend expects fromUserId
-        toUserId: settlement.toId,
+        fromUserId: settlement.from,
+        toUserId: settlement.to,
         amount: settlement.amount
       });
     },
