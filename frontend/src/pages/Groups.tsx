@@ -126,7 +126,7 @@ const Groups = () => {
           <p className="text-slate-500 mt-1">Manage your flatmates and group settings.</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => alert('Group Settings are coming soon!')}>
             <Settings className="w-4 h-4 mr-2" />
             Settings
           </Button>
