@@ -2,6 +2,38 @@ import { Response } from 'express';
 import { prisma } from '../prisma';
 import { AuthRequest } from '../middleware/auth';
 
+export const sendReminder = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const senderId = req.user?.userId;
+    const { targetUserId, amount } = req.body;
+
+    if (!senderId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+    if (!targetUserId) {
+      res.status(400).json({ error: 'Missing target user ID' });
+      return;
+    }
+
+    const sender = await prisma.user.findUnique({ where: { id: senderId } });
+    
+    await prisma.notification.create({
+      data: {
+        userId: targetUserId,
+        title: 'Payment Reminder',
+        message: `${sender?.name || 'Someone'} gently reminds you to settle your balance of ₹${amount}.`,
+        type: 'settlement'
+      }
+    });
+
+    res.status(200).json({ message: 'Reminder sent successfully' });
+  } catch (error: any) {
+    console.error('Send reminder error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 export const getUserNotifications = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.userId;

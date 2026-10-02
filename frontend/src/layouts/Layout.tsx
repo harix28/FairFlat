@@ -4,38 +4,43 @@ import { FairBot } from '../components/FairBot';
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAppContext } from '../context/AppContext';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { notificationApi } from '../services/api';
 
 const Layout = () => {
   const location = useLocation();
+  const queryClient = useQueryClient();
   const [hasNewNotification, setHasNewNotification] = useState(false);
-  const [notifications, setNotifications] = useState<string[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
   const { user, logout } = useAppContext();
 
+  // Fetch real notifications from database
+  const { data: notifications = [] } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: async () => {
+      const res = await notificationApi.getNotifications();
+      return res.data;
+    },
+    enabled: !!user
+  });
+
   useEffect(() => {
-    // Attempt to connect to backend server for notifications
-    const socket = io('http://localhost:5000');
+    // Attempt to connect to backend server for live notifications
+    const socket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000');
     
-    socket.on('connect', () => {
-      // Assuming 'group-1' as the default mock group
-      socket.emit('join_group', 'group-1');
-    });
+    if (user) {
+      socket.emit('join_user', user.id);
+    }
 
-    socket.on('new_expense', (expense: any) => {
+    socket.on('new_notification', () => {
       setHasNewNotification(true);
-      setNotifications(prev => [`New expense added: ₹${expense.amount} for ${expense.title}`, ...prev]);
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
     });
-
-    // Mock an event coming in after 5 seconds for demo purposes
-    const timer = setTimeout(() => {
-      setHasNewNotification(true);
-      setNotifications(prev => ['Aman just added a ₹500 Swiggy bill', ...prev]);
-    }, 5000);
 
     return () => {
       socket.disconnect();
-      clearTimeout(timer);
     };
-  }, []);
+  }, [user]);
 
   const navItems = [
     { name: 'Dashboard', path: '/app', icon: Home },
@@ -95,12 +100,11 @@ const Layout = () => {
         <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 z-10">
           <div className="md:hidden text-xl font-bold text-blue-600">FairFlat</div>
           <div className="flex-1" />
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 relative">
             <button 
               onClick={() => {
                 setHasNewNotification(false);
-                if (notifications.length > 0) alert(notifications.join('\n'));
-                else alert('No new notifications');
+                setShowNotifications(!showNotifications);
               }}
               className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors relative"
             >
@@ -109,6 +113,56 @@ const Layout = () => {
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
               )}
             </button>
+
+            {/* Notification Dropdown */}
+            {showNotifications && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setShowNotifications(false)}
+                />
+                <div className="absolute top-12 right-12 w-80 bg-white border border-slate-200 shadow-xl rounded-xl z-50 overflow-hidden flex flex-col max-h-96">
+                  <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                    <h3 className="font-semibold text-slate-800">Notifications</h3>
+                    <button 
+                      onClick={async () => {
+                        await notificationApi.markAllAsRead();
+                        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+                      }}
+                      className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                  <div className="overflow-y-auto flex-1">
+                    {notifications.length === 0 ? (
+                      <div className="p-8 text-center text-slate-500 text-sm flex flex-col items-center">
+                        <Bell className="w-8 h-8 text-slate-300 mb-2" />
+                        You're all caught up!
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-slate-100">
+                        {notifications.map((notif: any) => (
+                          <div key={notif.id} className={`p-4 transition-colors text-sm text-slate-700 flex flex-col gap-1 cursor-pointer ${notif.read ? 'opacity-60 bg-white' : 'bg-blue-50/50 hover:bg-slate-50'}`}
+                            onClick={async () => {
+                               if (!notif.read) {
+                                 await notificationApi.markAsRead(notif.id);
+                                 queryClient.invalidateQueries({ queryKey: ['notifications'] });
+                               }
+                            }}
+                          >
+                            <span className="font-semibold">{notif.title}</span>
+                            <span>{notif.message}</span>
+                            <span className="text-xs text-slate-400 mt-1">{new Date(notif.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 text-white flex items-center justify-center font-medium shadow-sm">
               {user?.name?.charAt(0) || 'U'}
             </div>

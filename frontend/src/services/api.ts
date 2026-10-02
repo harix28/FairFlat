@@ -38,6 +38,7 @@ export const expenseApi = {
 
 export const notificationApi = {
   getNotifications: async () => api.get('/notifications'),
+  sendReminder: async (data: { targetUserId: string, amount: number }) => api.post('/notifications/remind', data),
   markAsRead: async (id: string) => api.put(`/notifications/${id}/read`),
   markAllAsRead: async () => api.put('/notifications/read-all'),
 };

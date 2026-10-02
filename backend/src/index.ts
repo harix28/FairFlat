@@ -8,7 +8,7 @@ import { createExpense, getGroupExpenses } from './controllers/expenseController
 import { getGroupBalancesAndSettlements } from './controllers/settlementController';
 import { recordPayment } from './controllers/paymentController';
 import { createGroup, getUserGroups, joinGroup } from './controllers/groupController';
-import { getUserNotifications, markNotificationAsRead, markAllAsRead } from './controllers/notificationController';
+import { getUserNotifications, markNotificationAsRead, markAllAsRead, sendReminder } from './controllers/notificationController';
 import { createRecurringExpense, getGroupRecurringExpenses } from './controllers/recurringExpenseController';
 import { FairBotService } from './bot/botService';
 import { authenticateToken } from './middleware/auth';
@@ -58,6 +58,7 @@ app.post('/api/groups/:groupId/payments', authenticateToken, recordPayment);
 
 // Notification Routes (Protected)
 app.get('/api/notifications', authenticateToken, getUserNotifications);
+app.post('/api/notifications/remind', authenticateToken, sendReminder);
 app.put('/api/notifications/:notificationId/read', authenticateToken, markNotificationAsRead);
 app.put('/api/notifications/read-all', authenticateToken, markAllAsRead);
 

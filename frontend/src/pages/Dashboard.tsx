@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../co
 import { Button } from '../components/ui/button';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchDashboardData, expenseApi } from '../services/api';
+import { fetchDashboardData, expenseApi, notificationApi } from '../services/api';
 import { useAppContext } from '../context/AppContext';
 import { useState } from 'react';
 
@@ -11,6 +11,7 @@ const Dashboard = () => {
   const queryClient = useQueryClient();
   const [processingId, setProcessingId] = useState<string | null>(null);
   const { user, activeGroup, groups } = useAppContext();
+  const [reminded, setReminded] = useState<Record<string, boolean>>({});
   
   const { data, isLoading, error } = useQuery({
     queryKey: ['dashboard', activeGroup?.id],
@@ -34,6 +35,18 @@ const Dashboard = () => {
     onError: () => {
       alert('Failed to record payment');
       setProcessingId(null);
+    }
+  });
+
+  const remindMutation = useMutation({
+    mutationFn: async (data: { targetUserId: string, amount: number }) => {
+      return notificationApi.sendReminder(data);
+    },
+    onSuccess: (_, variables) => {
+      setReminded(prev => ({ ...prev, [variables.targetUserId]: true }));
+      setTimeout(() => {
+        setReminded(prev => ({ ...prev, [variables.targetUserId]: false }));
+      }, 3000);
     }
   });
 
@@ -244,7 +257,15 @@ const Dashboard = () => {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="font-semibold text-emerald-500">₹{s.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
-                    <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => alert(`Reminder sent to ${getUserName(s.from)}!`)}>Remind</Button>
+                    <Button 
+                      size="sm" 
+                      variant={reminded[s.from] ? "default" : "outline"}
+                      className={`text-xs h-8 w-20 ${reminded[s.from] ? "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-500" : ""}`}
+                      disabled={remindMutation.isPending || reminded[s.from]}
+                      onClick={() => remindMutation.mutate({ targetUserId: s.from, amount: s.amount })}
+                    >
+                      {reminded[s.from] ? 'Sent!' : 'Remind'}
+                    </Button>
                   </div>
                 </div>
               ))}
