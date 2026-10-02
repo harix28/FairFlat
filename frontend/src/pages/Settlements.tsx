@@ -1,17 +1,39 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { ArrowRight, CheckCircle2, Loader2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { fetchDashboardData } from '../services/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchDashboardData, expenseApi } from '../services/api';
 import { useAppContext } from '../context/AppContext';
 
 const Settlements = () => {
   const { activeGroup } = useAppContext();
+  const queryClient = useQueryClient();
+  const [processingId, setProcessingId] = useState<string | null>(null);
   
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard', activeGroup?.id],
     queryFn: () => fetchDashboardData(activeGroup?.id || ''),
     enabled: !!activeGroup?.id
+  });
+
+  const payMutation = useMutation({
+    mutationFn: async (settlement: any) => {
+      if (!activeGroup?.id) throw new Error('No active group');
+      return expenseApi.recordPayment(activeGroup.id, {
+        fromUserId: settlement.fromId,
+        toUserId: settlement.toId,
+        amount: settlement.amount
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard', activeGroup?.id] });
+      setProcessingId(null);
+    },
+    onError: () => {
+      alert('Failed to record payment');
+      setProcessingId(null);
+    }
   });
 
   if (isLoading || !data) {
@@ -22,9 +44,12 @@ const Settlements = () => {
     );
   }
 
-  // The settlement engine automatically minimizes debts
-  // We use data.settlements directly
   const settlements = data.settlements;
+
+  const handleMarkPaid = (s: any, index: number) => {
+    setProcessingId(index.toString());
+    payMutation.mutate(s);
+  };
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-20 md:pb-0">
@@ -81,7 +106,13 @@ const Settlements = () => {
 
                 <div className="flex items-center justify-between sm:justify-end gap-6 sm:w-1/3">
                   <span className="font-bold text-xl text-slate-900">₹{s.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
-                  <Button className="w-full sm:w-auto shadow-sm">Mark Paid</Button>
+                  <Button 
+                    className="w-full sm:w-auto shadow-sm" 
+                    onClick={() => handleMarkPaid(s, i)}
+                    disabled={processingId === i.toString()}
+                  >
+                    {processingId === i.toString() ? 'Processing...' : 'Mark Paid'}
+                  </Button>
                 </div>
                 
               </div>

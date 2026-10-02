@@ -2,17 +2,39 @@ import { ArrowUpRight, ArrowDownRight, CreditCard, Utensils, Loader2, Users, Plu
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { fetchDashboardData } from '../services/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchDashboardData, expenseApi } from '../services/api';
 import { useAppContext } from '../context/AppContext';
+import { useState } from 'react';
 
 const Dashboard = () => {
+  const queryClient = useQueryClient();
+  const [processingId, setProcessingId] = useState<string | null>(null);
   const { user, activeGroup, groups } = useAppContext();
   
   const { data, isLoading, error } = useQuery({
     queryKey: ['dashboard', activeGroup?.id],
     queryFn: () => fetchDashboardData(activeGroup?.id || ''),
     enabled: !!activeGroup?.id
+  });
+
+  const payMutation = useMutation({
+    mutationFn: async (settlement: any) => {
+      if (!activeGroup?.id) throw new Error('No active group');
+      return expenseApi.recordPayment(activeGroup.id, {
+        fromUserId: settlement.fromId, // Notice my backend expects fromUserId
+        toUserId: settlement.toId,
+        amount: settlement.amount
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard', activeGroup?.id] });
+      setProcessingId(null);
+    },
+    onError: () => {
+      alert('Failed to record payment');
+      setProcessingId(null);
+    }
   });
 
   const currentUserName = user?.name || 'User';
@@ -78,19 +100,25 @@ const Dashboard = () => {
   let oweCount = 0;
   let owedCount = 0;
   
-  const currentUser = user?.id || 'Unknown';
-  const myBalance = data.balances[currentUser] || 0;
+  const currentUserId = user?.id || 'Unknown';
+  const myBalance = data.balances[currentUserId] || 0;
 
   data.settlements.forEach((s: any) => {
-    if (s.to === currentUser) {
+    if (s.to === currentUserId) {
       totalOwedToYou += s.amount;
       owedCount++;
     }
-    if (s.from === currentUser) {
+    if (s.from === currentUserId) {
       totalYouOwe += s.amount;
       oweCount++;
     }
   });
+
+  const getUserName = (userId: string) => {
+    if (userId === currentUserId) return 'You';
+    const member = activeGroup?.members?.find((m: any) => m.user.id === userId);
+    return member ? member.user.name : userId.substring(0, 4);
+  };
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-20 md:pb-0">
@@ -180,12 +208,12 @@ const Dashboard = () => {
                     </div>
                     <div>
                       <h4 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{expense.title}</h4>
-                      <p className="text-sm text-slate-500">{expense.payerId === currentUser ? 'You paid' : `${expense.payerId} paid`} • {expense.date}</p>
+                      <p className="text-sm text-slate-500">{expense.payerId === currentUserId ? 'You paid' : `${getUserName(expense.payerId)} paid`} • {new Date(expense.date).toLocaleDateString()}</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="font-semibold text-slate-900">₹{expense.amount.toLocaleString()}</div>
-                    <div className={`text-sm ${expense.payerId === currentUser ? 'text-emerald-500' : 'text-slate-500'}`}>
+                    <div className={`text-sm ${expense.payerId === currentUserId ? 'text-emerald-500' : 'text-slate-500'}`}>
                       {expense.participants.length} participants
                     </div>
                   </div>
@@ -203,20 +231,20 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-5">
-              {data.settlements.filter((s: any) => s.to === currentUser).length === 0 && (
+              {data.settlements.filter((s: any) => s.to === currentUserId).length === 0 && (
                 <div className="text-sm text-slate-500 italic">No one owes you money right now!</div>
               )}
-              {data.settlements.filter((s: any) => s.to === currentUser).map((s: any, i: number) => (
+              {data.settlements.filter((s: any) => s.to === currentUserId).map((s: any, i: number) => (
                 <div key={i} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-medium text-slate-600">
-                      {s.from.charAt(0)}
+                      {getUserName(s.from).charAt(0)}
                     </div>
-                    <span className="font-medium">{s.from}</span>
+                    <span className="font-medium">{getUserName(s.from)}</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-semibold text-emerald-500">₹{s.amount}</span>
-                    <Button size="sm" variant="outline" className="text-xs h-8">Remind</Button>
+                    <span className="font-semibold text-emerald-500">₹{s.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                    <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => alert(`Reminder sent to ${getUserName(s.from)}!`)}>Remind</Button>
                   </div>
                 </div>
               ))}
@@ -224,20 +252,30 @@ const Dashboard = () => {
             
             <div className="mt-8 pt-6 border-t border-slate-100 space-y-5">
               <h4 className="font-medium text-sm text-slate-500 mb-4 uppercase tracking-wider">You Owe</h4>
-              {data.settlements.filter((s: any) => s.from === currentUser).length === 0 && (
+              {data.settlements.filter((s: any) => s.from === currentUserId).length === 0 && (
                 <div className="text-sm text-slate-500 italic">You don't owe anyone right now!</div>
               )}
-              {data.settlements.filter((s: any) => s.from === currentUser).map((s: any, i: number) => (
+              {data.settlements.filter((s: any) => s.from === currentUserId).map((s: any, i: number) => (
                 <div key={i} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-medium text-slate-600">
-                      {s.to.charAt(0)}
+                      {getUserName(s.to).charAt(0)}
                     </div>
-                    <span className="font-medium">{s.to}</span>
+                    <span className="font-medium">{getUserName(s.to)}</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-semibold text-red-500">₹{s.amount}</span>
-                    <Button size="sm" className="text-xs h-8">Pay</Button>
+                    <span className="font-semibold text-red-500">₹{s.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                    <Button 
+                      size="sm" 
+                      className="text-xs h-8"
+                      onClick={() => {
+                        setProcessingId(`pay-${i}`);
+                        payMutation.mutate(s);
+                      }}
+                      disabled={processingId === `pay-${i}`}
+                    >
+                      {processingId === `pay-${i}` ? 'Paying...' : 'Pay'}
+                    </Button>
                   </div>
                 </div>
               ))}
