@@ -58,7 +58,7 @@ const Analytics = () => {
   const barData = Object.values(userStats);
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto pb-20 md:pb-0">
+    <div className="space-y-6 max-w-6xl mx-auto">
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Analytics</h1>
         <p className="text-slate-500 mt-1">Discover your spending habits and group trends.</p>

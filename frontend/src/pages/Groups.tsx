@@ -56,7 +56,7 @@ const Groups = () => {
 
   if (!activeGroup) {
     return (
-      <div className="space-y-6 max-w-4xl mx-auto pb-20 md:pb-0">
+      <div className="space-y-6 max-w-4xl mx-auto">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Your Groups</h1>
           <p className="text-slate-500 mt-1">You aren't in any groups yet. Create or join one to get started.</p>
@@ -119,7 +119,7 @@ const Groups = () => {
   const expensesCount = (activeGroup as any)._count?.expenses || 0;
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto pb-20 md:pb-0">
+    <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">{activeGroup.name}</h1>

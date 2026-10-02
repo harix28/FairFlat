@@ -72,7 +72,7 @@ const AddExpense = () => {
   };
   
   return (
-    <div className="space-y-6 max-w-3xl mx-auto pb-20 md:pb-0">
+    <div className="space-y-6 max-w-3xl mx-auto">
       <div className="flex items-center gap-4 mb-8">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
           &larr;

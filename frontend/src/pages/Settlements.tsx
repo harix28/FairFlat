@@ -52,7 +52,7 @@ const Settlements = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto pb-20 md:pb-0">
+    <div className="space-y-6 max-w-4xl mx-auto">
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Settlements</h1>
         <p className="text-slate-500 mt-1">Settle up with your group in the fewest possible transactions.</p>
