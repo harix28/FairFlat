@@ -6,7 +6,7 @@ import { Loader2 } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
 const Analytics = () => {
-  const { activeGroup, user } = useAppContext();
+  const { activeGroup } = useAppContext();
 
   const { data, isLoading } = useQuery({
     queryKey: ['stats', activeGroup?.id],

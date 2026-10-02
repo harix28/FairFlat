@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { io, Socket } from 'socket.io-client';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { io as socketIO, Socket } from 'socket.io-client';
 import { groupApi } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 
@@ -20,13 +20,12 @@ interface AppContextType {
   user: User | null;
   setUser: (user: User | null) => void;
   activeGroup: Group | null;
-  socketConnected: boolean;
-
   setActiveGroup: (group: Group | null) => void;
   groups: Group[];
   refreshGroups: () => Promise<void>;
   logout: () => void;
-  io: Socket; // expose socket
+  io: Socket;
+  socketConnected: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -35,36 +34,43 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [activeGroup, setActiveGroup] = useState<Group | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
+  const [socketConnected, setSocketConnected] = useState(false);
   const navigate = useNavigate();
 
-  // Initialise socket once
-  const socket: Socket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000', {
-    autoConnect: false,
-  });
-  const [socketConnected, setSocketConnected] = useState(false);
+  // Use a ref so the socket instance is stable across renders
+  const socketRef = useRef<Socket>(
+    socketIO(
+      import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000',
+      { autoConnect: false }
+    )
+  );
+  const socket = socketRef.current;
 
-  // Connect socket when user is available
+  // Connect / disconnect socket when user changes
   useEffect(() => {
+    const onConnect = () => setSocketConnected(true);
+    const onDisconnect = () => setSocketConnected(false);
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+
     if (user) {
       socket.connect();
       socket.emit('join_user', user.id);
       const activeGroupId = localStorage.getItem('fairflat_active_group');
       if (activeGroupId) socket.emit('join_group', activeGroupId);
     }
-    // listen for connection events
-    socket.on('connect', () => setSocketConnected(true));
-    socket.on('disconnect', () => setSocketConnected(false));
+
     return () => {
-      socket.off('connect');
-      socket.off('disconnect');
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
       socket.disconnect();
     };
-  }, [user]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  // Session restore on mount
   useEffect(() => {
-    // Session restore
     const storedUser = localStorage.getItem('user');
     const token = localStorage.getItem('token');
     if (storedUser && token) {
