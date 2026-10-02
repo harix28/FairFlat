@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import http from 'http';
 import { Server } from 'socket.io';
 import { register, login } from './controllers/authController';
-import { createExpense, getGroupExpenses } from './controllers/expenseController';
+import { createExpense, getGroupExpenses, deleteExpense } from './controllers/expenseController';
 import { getGroupBalancesAndSettlements } from './controllers/settlementController';
 import { recordPayment } from './controllers/paymentController';
 import { createGroup, getUserGroups, joinGroup, updateGroup, leaveGroup } from './controllers/groupController';
@@ -51,6 +51,7 @@ app.delete('/api/groups/:groupId/leave', authenticateToken, leaveGroup);
 // Expense Routes (Protected)
 app.post('/api/groups/:groupId/expenses', authenticateToken, createExpense);
 app.get('/api/groups/:groupId/expenses', authenticateToken, getGroupExpenses);
+app.delete('/api/groups/:groupId/expenses/:expenseId', authenticateToken, deleteExpense);
 app.post('/api/groups/:groupId/recurring', authenticateToken, createRecurringExpense);
 app.get('/api/groups/:groupId/recurring', authenticateToken, getGroupRecurringExpenses);
 

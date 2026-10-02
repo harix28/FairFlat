@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Search, Filter, Plus, Loader2 } from 'lucide-react';
+import { Search, Filter, Plus, Loader2, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { fetchDashboardData } from '../services/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchDashboardData, expenseApi } from '../services/api';
 import { useAppContext } from '../context/AppContext';
 
 const Expenses = () => {
@@ -22,6 +22,23 @@ const Expenses = () => {
     queryFn: () => fetchDashboardData(activeGroup?.id || ''),
     enabled: !!activeGroup?.id
   });
+
+  const queryClient = useQueryClient();
+  const deleteMutation = useMutation({
+    mutationFn: (expenseId: string) => expenseApi.deleteExpense(activeGroup?.id || '', expenseId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard', activeGroup?.id] });
+    },
+    onError: () => {
+      alert('Failed to delete expense');
+    }
+  });
+
+  const handleDelete = (expenseId: string) => {
+    if (confirm('Are you sure you want to delete this expense?')) {
+      deleteMutation.mutate(expenseId);
+    }
+  };
 
   if (isLoading || !data) {
     return (
@@ -84,9 +101,25 @@ const Expenses = () => {
                   </div>
                 </div>
               </div>
-              <div className="text-right hidden sm:block">
-                <div className="font-semibold text-slate-900">₹{expense.amount.toLocaleString()}</div>
-                <div className="text-sm text-emerald-500">{expense.participants.length} involved</div>
+              <div className="flex items-center gap-4 text-right">
+                <div className="hidden sm:block">
+                  <div className="font-semibold text-slate-900">₹{expense.amount.toLocaleString()}</div>
+                  <div className="text-sm text-emerald-500">{expense.participants.length} involved</div>
+                </div>
+                {expense.payerId === user?.id && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-slate-400 hover:text-red-600 hover:bg-red-50 px-2"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleDelete(expense.id);
+                    }}
+                    disabled={deleteMutation.isPending}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>

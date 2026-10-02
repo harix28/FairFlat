@@ -32,6 +32,7 @@ export const groupApi = {
 export const expenseApi = {
   getExpenses: async (groupId: string) => api.get(`/groups/${groupId}/expenses`),
   createExpense: async (groupId: string, data: any) => api.post(`/groups/${groupId}/expenses`, data),
+  deleteExpense: async (groupId: string, expenseId: string) => api.delete(`/groups/${groupId}/expenses/${expenseId}`),
   getBalances: async (groupId: string) => api.get(`/groups/${groupId}/balances`),
   recordPayment: async (groupId: string, data: any) => api.post(`/groups/${groupId}/payments`, data),
   getRecurring: async (groupId: string) => api.get(`/groups/${groupId}/recurring`),

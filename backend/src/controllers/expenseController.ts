@@ -128,3 +128,29 @@ export const getGroupExpenses = async (req: AuthRequest, res: Response): Promise
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+export const deleteExpense = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { groupId, expenseId } = req.params;
+    const userId = req.user?.userId;
+
+    const expense = await prisma.expense.findUnique({ where: { id: expenseId } });
+    if (!expense) {
+      res.status(404).json({ error: 'Expense not found' });
+      return;
+    }
+
+    // Allow if they are the payer
+    if (expense.payerId !== userId) {
+      res.status(403).json({ error: 'Only the payer can delete this expense' });
+      return;
+    }
+
+    await prisma.expense.delete({ where: { id: expenseId } });
+
+    res.status(200).json({ message: 'Expense deleted successfully' });
+  } catch (error: any) {
+    console.error('Error deleting expense:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
