@@ -10,6 +10,8 @@ import { recordPayment } from './controllers/paymentController';
 import { createGroup, getUserGroups, joinGroup, updateGroup, leaveGroup } from './controllers/groupController';
 import { getUserNotifications, markNotificationAsRead, markAllAsRead, sendReminder } from './controllers/notificationController';
 import { createRecurringExpense, getGroupRecurringExpenses } from './controllers/recurringExpenseController';
+import { createChore, getChores, updateChoreAssignment, deleteChore } from './controllers/choreController';
+import { createShoppingItem, getShoppingItems, updateShoppingItem, deleteShoppingItem } from './controllers/shoppingController';
 import { FairBotService } from './bot/botService';
 import { authenticateToken } from './middleware/auth';
 import { initCronJobs } from './cron/recurringExpenseJob';
@@ -63,6 +65,18 @@ app.get('/api/groups/:groupId/recurring', authenticateToken, getGroupRecurringEx
 // Settlement Routes (Protected)
 app.get('/api/groups/:groupId/balances', authenticateToken, getGroupBalancesAndSettlements);
 app.post('/api/groups/:groupId/payments', authenticateToken, recordPayment);
+
+// Chores Routes (Protected)
+app.post('/api/groups/:groupId/chores', authenticateToken, createChore);
+app.get('/api/groups/:groupId/chores', authenticateToken, getChores);
+app.put('/api/groups/:groupId/chores/assignments/:assignmentId', authenticateToken, updateChoreAssignment);
+app.delete('/api/groups/:groupId/chores/:choreId', authenticateToken, deleteChore);
+
+// Shopping Routes (Protected)
+app.post('/api/groups/:groupId/shopping', authenticateToken, createShoppingItem);
+app.get('/api/groups/:groupId/shopping', authenticateToken, getShoppingItems);
+app.put('/api/groups/:groupId/shopping/:itemId', authenticateToken, updateShoppingItem);
+app.delete('/api/groups/:groupId/shopping/:itemId', authenticateToken, deleteShoppingItem);
 
 // Notification Routes (Protected)
 app.get('/api/notifications', authenticateToken, getUserNotifications);

@@ -21,6 +21,8 @@ model User {
   sentPayments   Payment[]      @relation("SentPayments")
   receivedPayments Payment[]    @relation("ReceivedPayments")
   notifications  Notification[]
+  choreAssignments ChoreAssignment[]
+  purchasedItems ShoppingItem[] @relation("PurchasedBy")
 }
 
 model Group {
@@ -33,6 +35,8 @@ model Group {
   members     GroupMember[]
   expenses    Expense[]
   recurringExpenses RecurringExpense[]
+  chores      Chore[]
+  shoppingItems ShoppingItem[]
 }
 
 model GroupMember {
@@ -146,3 +150,47 @@ model RecurringExpense {
   
   group         Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
 }
+
+model Chore {
+  id          String   @id @default(uuid())
+  groupId     String
+  title       String
+  description String?
+  frequency   String   // one-time, daily, weekly, monthly, custom
+  priority    String   @default("medium") // low, medium, high
+  dueDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  group       Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  assignments ChoreAssignment[]
+}
+
+model ChoreAssignment {
+  id          String   @id @default(uuid())
+  choreId     String
+  userId      String
+  status      String   @default("pending") // pending, completed, skipped
+  assignedDate DateTime @default(now())
+  completedAt DateTime?
+
+  chore       Chore    @relation(fields: [choreId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ShoppingItem {
+  id          String   @id @default(uuid())
+  groupId     String
+  name        String
+  quantity    Int      @default(1)
+  category    String?
+  priority    String   @default("medium") // low, medium, high
+  status      String   @default("pending") // pending, purchased
+  purchasedBy String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  group       Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  purchaser   User?    @relation("PurchasedBy", fields: [purchasedBy], references: [id])
+}
+

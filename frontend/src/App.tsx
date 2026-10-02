@@ -8,6 +8,8 @@ import Settlements from './pages/Settlements';
 import RecurringExpenses from './pages/RecurringExpenses';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
+import Chores from './pages/Chores';
+import Shopping from './pages/Shopping';
 import Layout from './layouts/Layout';
 import LandingPage from './pages/LandingPage';
 import Auth from './pages/Auth';
@@ -35,6 +37,8 @@ function App() {
               <Route path="recurring" element={<RecurringExpenses />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="settings" element={<Settings />} />
+              <Route path="chores" element={<Chores />} />
+              <Route path="shopping" element={<Shopping />} />
             </Route>
           </Route>
 
