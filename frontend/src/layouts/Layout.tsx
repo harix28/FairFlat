@@ -12,7 +12,7 @@ const Layout = () => {
   const queryClient = useQueryClient();
   const [hasNewNotification, setHasNewNotification] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const { user, logout } = useAppContext();
+  const { user, activeGroup, logout } = useAppContext();
 
   // Fetch real notifications from database
   const { data: notifications = [] } = useQuery({
