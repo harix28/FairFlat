@@ -12,6 +12,7 @@ import Settings from './pages/Settings';
 import Chores from './pages/Chores';
 import Shopping from './pages/Shopping';
 import Chat from './pages/Chat';
+import RoomioBot from './pages/RoomioBot';
 import Activity from './pages/Activity';
 import Layout from './layouts/Layout';
 import LandingPage from './pages/LandingPage';
@@ -44,6 +45,7 @@ function App() {
                   <Route path="chores" element={<Chores />} />
                   <Route path="shopping" element={<Shopping />} />
                   <Route path="chat" element={<Chat />} />
+                  <Route path="bot" element={<RoomioBot />} />
                   <Route path="activity" element={<Activity />} />
                 </Route>
               </Route>

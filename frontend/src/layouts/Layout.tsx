@@ -1,6 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Home, Receipt, PieChart, Repeat, ListTodo, ShoppingCart, MessageSquare, Bot, Bell, Settings as SettingsIcon } from 'lucide-react';
-import { RoomioBot } from '../components/RoomioBot';
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAppContext } from '../context/AppContext';
@@ -10,7 +9,6 @@ import { notificationApi } from '../services/api';
 const Layout = () => {
   const location = useLocation();
   const queryClient = useQueryClient();
-  const [isBotOpen, setIsBotOpen] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [hasNewNotification, setHasNewNotification] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -70,6 +68,8 @@ const Layout = () => {
     { name: 'Recurring', path: '/app/recurring', icon: Repeat, requiresGroup: true },
     { name: 'Chores', path: '/app/chores', icon: ListTodo, requiresGroup: true },
     { name: 'Shopping', path: '/app/shopping', icon: ShoppingCart, requiresGroup: true },
+    { name: 'Chat', path: '/app/chat', icon: MessageSquare, requiresGroup: true },
+    { name: 'RoomioBot', path: '/app/bot', icon: Bot, requiresGroup: true },
   ].filter(item => !item.requiresGroup || activeGroup);
 
   return (
@@ -116,21 +116,6 @@ const Layout = () => {
           <div className="md:hidden text-xl font-bold text-blue-600">Roomio</div>
           <div className="flex-1" />
           <div className="flex items-center gap-4 relative">
-            <button 
-              onClick={() => setIsBotOpen(true)}
-              className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors relative"
-            >
-              <Bot className="w-5 h-5" />
-            </button>
-            {activeGroup && (
-              <Link 
-                to="/app/chat"
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
-              >
-                <MessageSquare className="w-5 h-5" />
-              </Link>
-            )}
-
             <div className="relative">
               <button 
                 onClick={() => {
@@ -228,8 +213,6 @@ const Layout = () => {
           <Outlet />
         </main>
       </div>
-
-      <RoomioBot isOpen={isBotOpen} onClose={() => setIsBotOpen(false)} />
 
       {/* Mobile nav (bottom) */}
       <div className="md:hidden fixed bottom-0 w-full bg-white border-t border-slate-200 z-50 flex justify-between px-2 sm:px-6 p-2">
