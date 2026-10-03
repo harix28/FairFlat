@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Home, Receipt, PieChart, Bell, Repeat, ListTodo, ShoppingCart, MessageSquare, Bot } from 'lucide-react';
+import { Home, Receipt, PieChart, Repeat, ListTodo, ShoppingCart, MessageSquare, Bot, Bell, Settings as SettingsIcon } from 'lucide-react';
 import { FairBot } from '../components/FairBot';
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
@@ -10,9 +10,10 @@ import { notificationApi } from '../services/api';
 const Layout = () => {
   const location = useLocation();
   const queryClient = useQueryClient();
+  const [isBotOpen, setIsBotOpen] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [hasNewNotification, setHasNewNotification] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [isBotOpen, setIsBotOpen] = useState(false);
   const { user, activeGroup } = useAppContext();
 
   // Fetch real notifications from database
@@ -38,6 +39,7 @@ const Layout = () => {
     if (activeGroupId) {
       socket.emit('join_group', activeGroupId);
     }
+
 
     socket.on('new_notification', () => {
       setHasNewNotification(true);
@@ -128,71 +130,95 @@ const Layout = () => {
                 <MessageSquare className="w-5 h-5" />
               </Link>
             )}
-            <button 
-              onClick={() => {
-                setHasNewNotification(false);
-                setShowNotifications(!showNotifications);
-              }}
-              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors relative"
-            >
-              <Bell className="w-5 h-5" />
-              {hasNewNotification && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-              )}
-            </button>
 
-            {/* Notification Dropdown */}
-            {showNotifications && (
-              <>
-                <div 
-                  className="fixed inset-0 z-40" 
-                  onClick={() => setShowNotifications(false)}
-                />
-                <div className="absolute top-12 right-12 w-80 bg-white border border-slate-200 shadow-xl rounded-xl z-50 overflow-hidden flex flex-col max-h-96">
-                  <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                    <h3 className="font-semibold text-slate-800">Notifications</h3>
-                    <button 
-                      onClick={async () => {
-                        await notificationApi.markAllAsRead();
-                        queryClient.invalidateQueries({ queryKey: ['notifications'] });
-                      }}
-                      className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+            <div className="relative">
+              <button 
+                onClick={() => {
+                  setShowProfileMenu(!showProfileMenu);
+                  setShowNotifications(false);
+                }} 
+                className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 text-white flex items-center justify-center font-medium shadow-sm hover:opacity-90 transition-opacity relative"
+              >
+                {user?.name?.charAt(0) || 'U'}
+                {hasNewNotification && (
+                  <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
+                )}
+              </button>
+
+              {/* Profile Menu Dropdown */}
+              {showProfileMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowProfileMenu(false)} />
+                  <div className="absolute top-12 right-0 w-48 bg-white border border-slate-200 shadow-xl rounded-xl z-50 overflow-hidden flex flex-col">
+                    <Link 
+                      to="/app/settings" 
+                      onClick={() => setShowProfileMenu(false)} 
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors text-slate-700 text-sm font-medium border-b border-slate-100"
                     >
-                      Clear all
+                      <SettingsIcon className="w-4 h-4 text-slate-400" /> Settings
+                    </Link>
+                    <button 
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        setHasNewNotification(false);
+                        setShowNotifications(true);
+                      }} 
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors text-slate-700 text-sm font-medium"
+                    >
+                      <Bell className="w-4 h-4 text-slate-400" /> 
+                      Notifications
+                      {hasNewNotification && <span className="w-2 h-2 bg-red-500 rounded-full ml-auto"></span>}
                     </button>
                   </div>
-                  <div className="overflow-y-auto flex-1">
-                    {notifications.length === 0 ? (
-                      <div className="p-8 text-center text-slate-500 text-sm flex flex-col items-center">
-                        <Bell className="w-8 h-8 text-slate-300 mb-2" />
-                        You're all caught up!
-                      </div>
-                    ) : (
-                      <div className="divide-y divide-slate-100">
-                        {notifications.map((notif: any) => (
-                          <div key={notif.id} className={`p-4 transition-colors text-sm text-slate-700 flex flex-col gap-1 cursor-pointer ${notif.read ? 'opacity-60 bg-white' : 'bg-blue-50/50 hover:bg-slate-50'}`}
-                            onClick={async () => {
-                               if (!notif.read) {
-                                 await notificationApi.markAsRead(notif.id);
-                                 queryClient.invalidateQueries({ queryKey: ['notifications'] });
-                               }
-                            }}
-                          >
-                            <span className="font-semibold">{notif.title}</span>
-                            <span>{notif.message}</span>
-                            <span className="text-xs text-slate-400 mt-1">{new Date(notif.createdAt).toLocaleDateString()}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
+                </>
+              )}
 
-            <Link to="/app/settings" className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 text-white flex items-center justify-center font-medium shadow-sm hover:opacity-90 transition-opacity">
-              {user?.name?.charAt(0) || 'U'}
-            </Link>
+              {/* Notification List Dropdown */}
+              {showNotifications && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
+                  <div className="absolute top-12 right-0 w-[300px] sm:w-80 bg-white border border-slate-200 shadow-xl rounded-xl z-50 overflow-hidden flex flex-col max-h-96">
+                    <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                      <h3 className="font-semibold text-slate-800">Notifications</h3>
+                      <button 
+                        onClick={async () => {
+                          await notificationApi.markAllAsRead();
+                          queryClient.invalidateQueries({ queryKey: ['notifications'] });
+                        }}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        Clear all
+                      </button>
+                    </div>
+                    <div className="overflow-y-auto flex-1">
+                      {notifications.length === 0 ? (
+                        <div className="p-8 text-center text-slate-500 text-sm flex flex-col items-center">
+                          <Bell className="w-8 h-8 text-slate-300 mb-2" />
+                          You're all caught up!
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-slate-100">
+                          {notifications.map((notif: any) => (
+                            <div key={notif.id} className={`p-4 transition-colors text-sm text-slate-700 flex flex-col gap-1 cursor-pointer ${notif.read ? 'opacity-60 bg-white' : 'bg-blue-50/50 hover:bg-slate-50'}`}
+                              onClick={async () => {
+                                 if (!notif.read) {
+                                   await notificationApi.markAsRead(notif.id);
+                                   queryClient.invalidateQueries({ queryKey: ['notifications'] });
+                                 }
+                              }}
+                            >
+                              <span className="font-semibold">{notif.title}</span>
+                              <span>{notif.message}</span>
+                              <span className="text-xs text-slate-400 mt-1">{new Date(notif.createdAt).toLocaleDateString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </header>
 
