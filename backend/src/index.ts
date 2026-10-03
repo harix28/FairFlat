@@ -105,10 +105,11 @@ app.put('/api/notifications/read-all', authenticateToken, markAllAsRead);
 
 // Bot Route (Protected)
 app.post('/api/bot/chat', authenticateToken, async (req, res) => {
-  const { text } = req.body;
+  const { text, groupId } = req.body;
+  const userId = (req as any).user?.userId;
   if (!text) return res.status(400).json({ error: 'Text is required' });
   
-  const intent = await RoomioBotService.extractIntent(text);
+  const intent = await RoomioBotService.extractIntent(text, userId, groupId);
   res.json({ result: intent });
 });
 

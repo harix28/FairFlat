@@ -57,7 +57,7 @@ const RoomioBot = () => {
     setIsTyping(true);
 
     try {
-      const res = await botApi.chat({ text: userMessage });
+      const res = await botApi.chat({ text: userMessage, groupId: activeGroup?.id });
       const intent = res.data.result;
       
       let botResponse = intent.reply || "I didn't quite catch that. Can you rephrase?";

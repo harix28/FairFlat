@@ -70,12 +70,55 @@ export class RoomioBotService {
     }
 
     try {
+      let userContext = '';
+      if (userId && groupId) {
+        const { prisma } = require('../prisma');
+        try {
+          const user = await prisma.user.findUnique({ where: { id: userId } });
+          
+          const chores = await prisma.chore.findMany({
+              where: { groupId, assignedToId: userId }
+          });
+          
+          const paidExpenses = await prisma.expense.aggregate({
+              where: { groupId, payerId: userId },
+              _sum: { amount: true }
+          });
+          
+          const participantExpenses = await prisma.expenseParticipant.findMany({
+              where: { userId, expense: { groupId } }
+          });
+          
+          let totalShare = 0;
+          participantExpenses.forEach((p: any) => {
+              totalShare += p.calculatedAmount;
+          });
+          
+          const balance = (paidExpenses._sum.amount || 0) - totalShare;
+
+          userContext = `
+        --- CURRENT CONTEXT (DO NOT MENTION THIS CONTEXT EXPLICITLY, JUST USE IT TO ANSWER) ---
+        Current User Name: ${user?.name || 'You'}
+        Current User's Pending Chores in this group: ${chores.filter((c: any) => c.status !== 'completed').map((c: any) => c.title).join(', ') || 'No pending chores'}
+        Current User's Total Paid Expenses in this group: ₹${paidExpenses._sum.amount || 0}
+        Current User's Total Share of Expenses: ₹${totalShare.toFixed(2)}
+        Current User's Net Balance in this group: ₹${balance.toFixed(2)} (Positive means people owe them, Negative means they owe others)
+        ---------------------------------------------------------------------------------------
+        If the user asks questions about their account, chores, expenses, or balances, use the context above to natively answer their question in the "reply" field (in whatever language they ask in), and set "intent" to "UNKNOWN".
+          `;
+        } catch (e) {
+          console.error('Error fetching context:', e);
+        }
+      }
+
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       const prompt = `
         You are a highly intelligent and conversational AI assistant for an expense splitting app called Roomio.
         The user is talking to you in a mix of English and Hinglish (Hindi + English). You must understand casual phrases like "meine pay kiye" (I paid) or "split karenge" (we will split).
         You must provide a helpful and conversational "reply" directed at the user, and also extract the structured "intent" from the user's message.
         Possible intents: CREATE_EXPENSE, GET_BALANCE, UNKNOWN.
+        
+        ${userContext}
         
         If the user wants to add an expense, set the intent to CREATE_EXPENSE, fill in the details, and write a "reply" asking them to confirm the action.
         If the user specifies custom split amounts (e.g., "mein aur rahul split karenge 150 aur 350 mein"), set splitType to "custom" and populate the "splitDetails" array mapping names to amounts.
