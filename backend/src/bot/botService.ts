@@ -168,7 +168,10 @@ User's message: "${text}"`;
       return fallbackMock(text, dbCtx);
     } catch (e: any) {
       console.error('[RoomioBot] Gemini API Error:', e?.message || e);
-      return fallbackMock(text, dbCtx);
+      if (e?.message?.includes('503')) {
+        return { reply: "Uff! Google's Gemini AI is currently facing high traffic and their servers are down (503 Service Unavailable). Please try again after some time! 🙏", intent: 'UNKNOWN' };
+      }
+      return { reply: "Oops, my AI brain had a hiccup: " + (e?.message || "Unknown error") + ". Let me fallback to basic mode for now.", intent: 'UNKNOWN' };
     }
   }
 
