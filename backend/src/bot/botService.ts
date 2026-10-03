@@ -189,13 +189,7 @@ User's message: "${text}"`;
           orderBy: { date: 'desc' },
           take: 10,
           include: {
-            items: {
-              include: {
-                participants: {
-                  include: { user: { select: { name: true, id: true } } }
-                }
-              }
-            }
+            items: true
           }
         });
 
