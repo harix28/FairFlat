@@ -112,12 +112,11 @@ export const markAllAsRead = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
-    await prisma.notification.updateMany({
-      where: { userId, read: false },
-      data: { read: true }
+    await prisma.notification.deleteMany({
+      where: { userId }
     });
 
-    res.status(200).json({ message: 'All notifications marked as read' });
+    res.status(200).json({ message: 'All notifications cleared' });
   } catch (error: any) {
     console.error('Mark all notifications error:', error);
     res.status(500).json({ error: 'Internal server error' });
