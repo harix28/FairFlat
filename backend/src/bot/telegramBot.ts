@@ -87,7 +87,7 @@ export const startTelegramBot = () => {
             data: {
               expenseId: expense.id,
               userId: m.userId,
-              shareAmount: splitAmount,
+              share: splitAmount,
               calculatedAmount: splitAmount
             }
           });
