@@ -122,12 +122,34 @@ const RoomioBot = () => {
                             const intent = msg.actionData;
                             if (!intent) return;
 
-                            const participants = activeGroup.members?.map(m => ({ userId: m.user.id })) || [];
+                            let participants: {userId: string, share?: number}[] = activeGroup.members?.map(m => ({ userId: m.user.id })) || [];
                             let payerId = user?.id;
                             
-                            if (intent.payer.toLowerCase() !== 'you' && intent.payer.toLowerCase() !== 'i') {
-                              const matchedMember = activeGroup.members?.find(m => m.user.name.toLowerCase() === intent.payer.toLowerCase());
+                            if (intent.payer && !['you', 'i', 'meine', 'me'].includes(intent.payer.toLowerCase())) {
+                              const matchedMember = activeGroup.members?.find(m => m.user.name.toLowerCase().includes(intent.payer.toLowerCase()) || intent.payer.toLowerCase().includes(m.user.name.toLowerCase()));
                               if (matchedMember) payerId = matchedMember.user.id;
+                            }
+
+                            if (intent.splitType === 'custom' && intent.splitDetails) {
+                              const newParticipants: {userId: string, share: number}[] = [];
+                              intent.splitDetails.forEach((detail: any) => {
+                                let targetUserId = user?.id;
+                                if (!['you', 'i', 'meine', 'mein', 'me'].includes(detail.name.toLowerCase())) {
+                                  const matchedMember = activeGroup.members?.find(m => m.user.name.toLowerCase().includes(detail.name.toLowerCase()) || detail.name.toLowerCase().includes(m.user.name.toLowerCase()));
+                                  if (matchedMember) targetUserId = matchedMember.user.id;
+                                }
+                                if (targetUserId) {
+                                  // Avoid duplicate pushes
+                                  if (!newParticipants.find(p => p.userId === targetUserId)) {
+                                    newParticipants.push({ userId: targetUserId, share: detail.amount });
+                                  }
+                                }
+                              });
+                              if (newParticipants.length > 0) {
+                                participants = newParticipants;
+                              } else {
+                                intent.splitType = 'equal'; // fallback
+                              }
                             }
 
                             expenseMutation.mutate({

@@ -11,6 +11,7 @@ export interface BotIntent {
   payer?: string;
   participants?: string[];
   splitType?: string;
+  splitDetails?: { name: string, amount: number }[];
 }
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'mock-key');
@@ -53,14 +54,17 @@ export class RoomioBotService {
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       const prompt = `
         You are a highly intelligent and conversational AI assistant for an expense splitting app called Roomio.
-        The user is talking to you. You must provide a helpful and conversational "reply" directed at the user, and also extract the structured "intent" from the user's message.
+        The user is talking to you in a mix of English and Hinglish (Hindi + English). You must understand casual phrases like "meine pay kiye" (I paid) or "split karenge" (we will split).
+        You must provide a helpful and conversational "reply" directed at the user, and also extract the structured "intent" from the user's message.
         Possible intents: CREATE_EXPENSE, GET_BALANCE, UNKNOWN.
-        If the user is just saying hi or asking a general question, the intent is UNKNOWN, but you should still provide a friendly "reply" answering them or greeting them.
+        
         If the user wants to add an expense, set the intent to CREATE_EXPENSE, fill in the details, and write a "reply" asking them to confirm the action.
+        If the user specifies custom split amounts (e.g., "mein aur rahul split karenge 150 aur 350 mein"), set splitType to "custom" and populate the "splitDetails" array mapping names to amounts.
 
         Return ONLY a JSON object EXACTLY matching this structure. Example:
         { "reply": "Hello! I am RoomioBot. How can I help you manage your expenses today?", "intent": "UNKNOWN" }
         { "reply": "Got it! Should I save this pizza expense for ₹500 paid by Hari?", "intent": "CREATE_EXPENSE", "amount": 500, "payer": "Hari", "participants": ["Hari", "Rahul"], "splitType": "equal", "title": "Pizza" }
+        { "reply": "Sure, I'll split the ₹500. Hari pays ₹150 and Rahul pays ₹350. Sound good?", "intent": "CREATE_EXPENSE", "amount": 500, "payer": "You", "splitType": "custom", "title": "Miscellaneous", "splitDetails": [{ "name": "Hari", "amount": 150 }, { "name": "Rahul", "amount": 350 }] }
         
         User message: "${text}"
       `;
