@@ -17,6 +17,7 @@ import { getGroupStats } from './controllers/statsController';
 import { getDebtSimplification } from './controllers/debtSimplifyController';
 import { getMessages, createMessage, deleteMessage } from './controllers/chatController';
 import { getActivityLogs } from './controllers/activityController';
+import { verifyWebhook, handleIncomingMessage } from './controllers/whatsappController';
 import { RoomioBotService } from './bot/botService';
 import { authenticateToken } from './middleware/auth';
 import { checkGroupMembership } from './middleware/groupAuth';
@@ -48,6 +49,10 @@ const PORT = process.env.PORT || 5000;
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Roomio API is running' });
 });
+
+// WhatsApp Webhook (Public)
+app.get('/api/whatsapp/webhook', verifyWebhook);
+app.post('/api/whatsapp/webhook', handleIncomingMessage);
 
 // Auth Routes
 app.post('/api/auth/register', register);
