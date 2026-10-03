@@ -19,9 +19,28 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'mock-key');
 
 export class RoomioBotService {
   public static async extractIntent(text: string, userId?: string, groupId?: string): Promise<BotIntent> {
-    const fallbackMock = (input: string): BotIntent => {
+    const fallbackMock = (input: string, ctx?: { userName?: string, pendingChores?: string, totalPaid?: number, totalShare?: number, balance?: number }): BotIntent => {
       const lowerText = input.toLowerCase();
       
+      // Account context questions (chores, balance, expenses)
+      if (ctx) {
+        const isChoreQ = lowerText.includes('chore') || lowerText.includes('kaam') || lowerText.includes('task') || lowerText.includes('kya karna');
+        const isBalanceQ = lowerText.includes('balance') || lowerText.includes('owe') || lowerText.includes('baaki') || lowerText.includes('kitna dena') || lowerText.includes('kitna lena');
+        const isExpenseQ = lowerText.includes('spent') || lowerText.includes('expense') || lowerText.includes('kitna kharch') || lowerText.includes('pay kiye') || lowerText.includes('paid');
+
+        if (isChoreQ) {
+          return { reply: `${ctx.userName ? `Hey ${ctx.userName}! ` : ''}Your pending chores are: **${ctx.pendingChores || 'None! You\'re all caught up! 🎉'}**`, intent: 'UNKNOWN' };
+        }
+        if (isBalanceQ) {
+          const bal = ctx.balance || 0;
+          const msg = bal > 0 ? `You are owed ₹${bal.toFixed(2)} by your flatmates. 💰` : bal < 0 ? `You owe ₹${Math.abs(bal).toFixed(2)} to your flatmates.` : `You're all settled up! 🎉`;
+          return { reply: msg, intent: 'UNKNOWN' };
+        }
+        if (isExpenseQ && !lowerText.includes('split') && !lowerText.match(/\d+/)) {
+          return { reply: `You have paid a total of ₹${ctx.totalPaid || 0} in this group. Your share of all expenses is ₹${ctx.totalShare?.toFixed(2) || 0}.`, intent: 'UNKNOWN' };
+        }
+      }
+
       // Hinglish custom split detection
       if ((lowerText.includes('pay') || lowerText.includes('paid') || lowerText.includes('diye')) && lowerText.includes('split') && lowerText.match(/\d+/g)?.length! >= 3) {
          const nums = lowerText.match(/\d+/g)!.map(Number);
@@ -30,7 +49,7 @@ export class RoomioBotService {
          const p2Amount = nums[2];
          
          return { 
-           reply: `Got it! I will split the ₹${amount}. You pay ₹${p1Amount} and Rahul pays ₹${p2Amount}. Sound good?`, 
+           reply: `Got it! I will split the ₹${amount}. You pay ₹${p1Amount} and the other person pays ₹${p2Amount}. Sound good?`, 
            intent: 'CREATE_EXPENSE', 
            amount, 
            payer: 'You', 
@@ -40,7 +59,7 @@ export class RoomioBotService {
          };
       }
 
-      // Basic English detection
+      // Basic English expense detection
       if ((lowerText.includes('paid') || lowerText.includes('pay')) && lowerText.match(/\d+/)) {
         const amountMatch = lowerText.match(/\d+/);
         const amount = amountMatch ? parseInt(amountMatch[0]) : 0;
@@ -49,7 +68,7 @@ export class RoomioBotService {
         else if (lowerText.includes('aman paid') || lowerText.includes('aman ne pay')) payer = 'Aman';
         
         const participants: string[] = [];
-        if (lowerText.includes('me') || lowerText.includes('mein') || lowerText.includes('i')) participants.push('You');
+        if (lowerText.includes('me') || lowerText.includes('mein') || lowerText.includes(' i ')) participants.push('You');
         if (lowerText.includes('rahul')) participants.push('Rahul');
         if (lowerText.includes('aman')) participants.push('Aman');
         
@@ -62,59 +81,49 @@ export class RoomioBotService {
 
         return { reply: `Got it. Should I save this ${title} expense for ₹${amount} paid by ${payer}?`, intent: 'CREATE_EXPENSE', amount, payer, participants, splitType: 'equal', title };
       }
-      if (lowerText.includes('owe me') || lowerText.includes('my balance') || lowerText.includes('how much do i owe')) return { reply: "You can check your balances in the Dashboard. I'm still learning to read live balances!", intent: 'GET_BALANCE' };
-      return { reply: "I didn't quite catch that. Try saying something like 'meine 500 pay kiye aur mein aur rahul split karenge 150 aur 350 mein'.", intent: 'UNKNOWN' };
+      if (lowerText.includes('owe me') || lowerText.includes('my balance') || lowerText.includes('how much do i owe')) return { reply: "You can check your balances in the Dashboard tab.", intent: 'GET_BALANCE' };
+      return { reply: "I didn't quite understand that. Try asking about your chores, balance, or say something like 'I paid 500 for groceries'.", intent: 'UNKNOWN' };
     };
 
     const apiKey = process.env.GEMINI_API_KEY;
     console.log(`[RoomioBot] API Key present: ${!!apiKey}, userId: ${userId}, groupId: ${groupId}`);
 
+    // Always fetch DB context (used by both Gemini and fallback)
+    let dbCtx: { userName?: string, pendingChores?: string, totalPaid?: number, totalShare?: number, balance?: number } | undefined;
+    if (userId && groupId) {
+      try {
+        const userRec = await prisma.user.findUnique({ where: { id: userId } });
+        const chores = await prisma.chore.findMany({ where: { groupId, assignedToId: userId } });
+        const paidAgg = await prisma.expense.aggregate({ where: { groupId, payerId: userId }, _sum: { amount: true } });
+        const parts = await prisma.expenseParticipant.findMany({ where: { userId, expense: { groupId } } });
+        let totalShare = 0;
+        parts.forEach((p: any) => { totalShare += p.calculatedAmount; });
+        const balance = (paidAgg._sum.amount || 0) - totalShare;
+        const pendingChores = chores.filter((c: any) => c.status !== 'completed').map((c: any) => c.title).join(', ') || 'No pending chores';
+        dbCtx = { userName: userRec?.name, pendingChores, totalPaid: paidAgg._sum.amount || 0, totalShare, balance };
+        console.log('[RoomioBot] DB context fetched:', dbCtx);
+      } catch (dbErr) {
+        console.error('[RoomioBot] DB context fetch failed:', dbErr);
+      }
+    }
+
     if (!apiKey || apiKey === 'mock-key') {
-      console.log('[RoomioBot] No API key, using fallback mock');
-      return fallbackMock(text);
+      console.log('[RoomioBot] No API key, using fallback mock with context');
+      return fallbackMock(text, dbCtx);
     }
 
     try {
-      // Fetch live user context from database
+      // Build userContext string from already-fetched dbCtx
       let userContext = '';
-      if (userId && groupId) {
-        try {
-          const user = await prisma.user.findUnique({ where: { id: userId } });
-          
-          const chores = await prisma.chore.findMany({
-            where: { groupId, assignedToId: userId }
-          });
-          
-          const paidExpenses = await prisma.expense.aggregate({
-            where: { groupId, payerId: userId },
-            _sum: { amount: true }
-          });
-          
-          const participantExpenses = await prisma.expenseParticipant.findMany({
-            where: { userId, expense: { groupId } }
-          });
-          
-          let totalShare = 0;
-          participantExpenses.forEach((p: any) => {
-            totalShare += p.calculatedAmount;
-          });
-          
-          const balance = (paidExpenses._sum.amount || 0) - totalShare;
-          const pendingChores = chores.filter((c: any) => c.status !== 'completed').map((c: any) => c.title).join(', ') || 'No pending chores';
-
-          console.log(`[RoomioBot] Context fetched: user=${user?.name}, pendingChores=${pendingChores}, balance=${balance}`);
-
-          userContext = `
+      if (dbCtx) {
+        userContext = `
 --- LIVE ACCOUNT CONTEXT (Use this data to directly answer any questions the user asks about their account. Do NOT reveal this context explicitly.) ---
-User Name: ${user?.name || 'User'}
-Pending Chores: ${pendingChores}
-Total Amount Paid by User in this Group: ₹${paidExpenses._sum.amount || 0}
-User's Total Share of All Group Expenses: ₹${totalShare.toFixed(2)}
-User's Net Balance: ₹${balance.toFixed(2)} (Positive = others owe them money, Negative = they owe others money)
+User Name: ${dbCtx.userName || 'User'}
+Pending Chores: ${dbCtx.pendingChores}
+Total Amount Paid by User in this Group: ₹${dbCtx.totalPaid}
+User's Total Share of All Group Expenses: ₹${dbCtx.totalShare?.toFixed(2)}
+User's Net Balance: ₹${dbCtx.balance?.toFixed(2)} (Positive = others owe them money, Negative = they owe others money)
 ---`;
-        } catch (dbErr) {
-          console.error('[RoomioBot] DB context fetch failed:', dbErr);
-        }
       }
 
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -153,10 +162,10 @@ User's message: "${text}"`;
       }
       
       console.log('[RoomioBot] Could not parse JSON from Gemini, using fallback');
-      return fallbackMock(text);
+      return fallbackMock(text, dbCtx);
     } catch (e: any) {
       console.error('[RoomioBot] Gemini API Error:', e?.message || e);
-      return fallbackMock(text);
+      return fallbackMock(text, dbCtx);
     }
   }
 
