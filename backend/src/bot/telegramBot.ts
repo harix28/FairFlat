@@ -1,8 +1,6 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const TelegramBotApi = require('node-telegram-bot-api');
 import { PrismaClient } from '@prisma/client';
 import { RoomioBotService } from './botService';
-import type { Message } from 'node-telegram-bot-api';
+import TelegramBot from 'node-telegram-bot-api';
 
 const prisma = new PrismaClient();
 const token = process.env.TELEGRAM_BOT_TOKEN || '';
@@ -13,10 +11,10 @@ export const startTelegramBot = () => {
     return;
   }
 
-  const bot = new TelegramBotApi(token, { polling: true });
+  const bot = new TelegramBot(token, { polling: true });
   console.log('[Telegram Bot] Started polling...');
 
-  bot.on('message', async (msg: Message) => {
+  bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text;
 
@@ -48,12 +46,12 @@ export const startTelegramBot = () => {
           data: { telegramChatId: chatId.toString() }
         });
 
-        bot.sendMessage(chatId, `Success! 🎉 Your Telegram is now linked to **${existingUser.name}**.\n\nTry sending a message like: *"I paid 500 for groceries"*`, { parse_mode: 'Markdown' });
+        bot.sendMessage(chatId, `✅ Linked! Hey *${existingUser.name}*, your Telegram is now connected to Roomio!\n\nTry: *"I paid 500 for groceries"*`, { parse_mode: 'Markdown' });
         return;
       }
 
       if (!user) {
-        bot.sendMessage(chatId, "Please link your account first by typing: `/link <your_email>`", { parse_mode: 'Markdown' });
+        bot.sendMessage(chatId, "Please link your account first by typing:\n`/link <your_email>`", { parse_mode: 'Markdown' });
         return;
       }
 
@@ -61,53 +59,48 @@ export const startTelegramBot = () => {
       const groupId = userGroup?.groupId;
 
       if (!groupId) {
-        bot.sendMessage(chatId, "You are not part of any group yet! Please join or create a group in the app first.");
+        bot.sendMessage(chatId, "⚠️ You are not part of any group yet! Please join or create a group in the Roomio app first.");
         return;
       }
 
-      // Show typing indicator
       bot.sendChatAction(chatId, 'typing');
 
-      // Call our Gemini AI bot logic
       const intentResult = await RoomioBotService.extractIntent(text, user.id, groupId);
 
-      // We only read intentResult.reply. In the app, CREATE_EXPENSE triggers a UI popup. 
-      // In WhatsApp/Telegram, if they want to create an expense, we can actually create it!
-      if (intentResult.intent === 'CREATE_EXPENSE') {
-         // Create the expense automatically since we don't have a UI modal here
-         const expense = await prisma.expense.create({
+      if (intentResult.intent === 'CREATE_EXPENSE' && intentResult.amount) {
+        const expense = await prisma.expense.create({
+          data: {
+            title: intentResult.title || 'Telegram Expense',
+            amount: intentResult.amount,
+            payerId: user.id,
+            groupId: groupId,
+            splitType: 'equal',
+            date: new Date()
+          }
+        });
+
+        const allMembers = await prisma.groupMember.findMany({ where: { groupId } });
+        const splitAmount = intentResult.amount / allMembers.length;
+
+        for (const m of allMembers) {
+          await prisma.expenseParticipant.create({
             data: {
-              title: intentResult.title || 'Telegram Expense',
-              amount: intentResult.amount || 0,
-              payerId: user.id,
-              groupId: groupId,
-              splitType: 'equal',
-              date: new Date()
+              expenseId: expense.id,
+              userId: m.userId,
+              shareAmount: splitAmount,
+              calculatedAmount: splitAmount
             }
-         });
-         
-         const allMembers = await prisma.groupMember.findMany({ where: { groupId } });
-         const splitAmount = (intentResult.amount || 0) / allMembers.length;
-         
-         for (const m of allMembers) {
-           await prisma.expenseParticipant.create({
-             data: {
-               expenseId: expense.id,
-               userId: m.userId,
-               shareAmount: splitAmount,
-               calculatedAmount: splitAmount
-             }
-           });
-         }
-         
-         bot.sendMessage(chatId, `✅ Expense added!\n\n${intentResult.reply}`);
+          });
+        }
+
+        bot.sendMessage(chatId, `✅ *Expense added!*\n\n${intentResult.reply}`, { parse_mode: 'Markdown' });
       } else {
-         bot.sendMessage(chatId, intentResult.reply || "Done!");
+        bot.sendMessage(chatId, intentResult.reply || "Done!");
       }
 
     } catch (error) {
       console.error('[Telegram Bot Error]', error);
-      bot.sendMessage(chatId, "Sorry, something went wrong processing your request.");
+      bot.sendMessage(chatId, "⚠️ Something went wrong. Please try again.");
     }
   });
 };
