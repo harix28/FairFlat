@@ -215,17 +215,17 @@ const Layout = () => {
       </div>
 
       {/* Mobile nav (bottom) */}
-      <div className="md:hidden fixed bottom-0 w-full bg-white border-t border-slate-200 z-50 flex justify-between px-2 sm:px-6 p-2">
+      <div className="md:hidden fixed bottom-0 w-full bg-white border-t border-slate-200 z-50 flex overflow-x-auto px-2 py-2 gap-2 hide-scrollbar shadow-[0_-4px_6px_-1px_rgb(0,0,0,0.05)]">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path || (item.path !== '/app' && location.pathname.startsWith(item.path));
           return (
             <Link
               key={item.name}
               to={item.path}
-              className={`flex flex-col items-center justify-center p-2 rounded-lg ${isActive ? 'text-blue-600' : 'text-slate-500'}`}
+              className={`flex flex-col items-center justify-center p-2 rounded-xl min-w-[72px] flex-shrink-0 transition-colors ${isActive ? 'text-blue-600 bg-blue-50' : 'text-slate-500 active:bg-slate-50'}`}
             >
-              <item.icon className="w-5 h-5 mb-1" />
-              <span className="text-[10px] font-medium hidden sm:block">{item.name}</span>
+              <item.icon className={`w-5 h-5 mb-1 ${isActive ? 'stroke-2' : 'stroke-[1.5]'}`} />
+              <span className="text-[10px] font-medium">{item.name}</span>
             </Link>
           );
         })}

@@ -131,34 +131,34 @@ const Dashboard = () => {
       </div>
 
       {/* Money Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Household Expenses</CardDescription>
-            <CardTitle className="text-2xl">₹{totalHousehold.toLocaleString(undefined, {minimumFractionDigits: 2})}</CardTitle>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="shadow-sm">
+          <CardHeader className="pb-2 p-4 sm:p-6">
+            <CardDescription className="text-xs sm:text-sm">Household Expenses</CardDescription>
+            <CardTitle className="text-lg sm:text-2xl truncate">₹{totalHousehold.toLocaleString(undefined, {minimumFractionDigits: 2})}</CardTitle>
           </CardHeader>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Your Spending</CardDescription>
-            <CardTitle className="text-2xl">₹{yourSpending.toLocaleString(undefined, {minimumFractionDigits: 2})}</CardTitle>
+        <Card className="shadow-sm">
+          <CardHeader className="pb-2 p-4 sm:p-6">
+            <CardDescription className="text-xs sm:text-sm">Your Spending</CardDescription>
+            <CardTitle className="text-lg sm:text-2xl truncate">₹{yourSpending.toLocaleString(undefined, {minimumFractionDigits: 2})}</CardTitle>
           </CardHeader>
         </Card>
-        <Card className="bg-slate-50">
-          <CardHeader className="pb-2">
-            <CardDescription className="flex justify-between">
+        <Card className="bg-slate-50 col-span-2 lg:col-span-1 shadow-sm">
+          <CardHeader className="pb-2 p-4 sm:p-6">
+            <CardDescription className="flex justify-between text-xs sm:text-sm">
               <span>You Owe</span>
-              <span className="text-red-500 font-semibold">₹{totalYouOwe.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+              <span className="text-red-500 font-semibold truncate ml-2">₹{totalYouOwe.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
             </CardDescription>
-            <CardDescription className="flex justify-between">
+            <CardDescription className="flex justify-between text-xs sm:text-sm">
               <span>You are Owed</span>
-              <span className="text-emerald-500 font-semibold">₹{totalOwedToYou.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+              <span className="text-emerald-500 font-semibold truncate ml-2">₹{totalOwedToYou.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-2 border-t mt-2 border-slate-200">
-             <div className="flex justify-between items-center text-lg font-bold">
+          <CardContent className="pt-2 border-t mt-2 border-slate-200 px-4 sm:px-6 pb-4 sm:pb-6">
+             <div className="flex justify-between items-center text-base sm:text-lg font-bold">
                <span>Net Balance</span>
-               <span className={myBalance >= 0 ? "text-emerald-600" : "text-red-600"}>
+               <span className={myBalance >= 0 ? "text-emerald-600 truncate ml-2" : "text-red-600 truncate ml-2"}>
                  {myBalance >= 0 ? '+' : ''}₹{myBalance.toLocaleString(undefined, {minimumFractionDigits: 2})}
                </span>
              </div>
@@ -166,22 +166,22 @@ const Dashboard = () => {
         </Card>
         
         {/* Settlement Debt graph snippet */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Outstanding Debts</CardTitle>
+        <Card className="col-span-2 lg:col-span-1 shadow-sm">
+          <CardHeader className="pb-2 p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-lg">Outstanding Debts</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 px-4 sm:px-6 pb-4 sm:pb-6">
              {data.settlements.length === 0 ? (
-               <div className="text-sm text-slate-500 italic">No outstanding debts.</div>
+               <div className="text-xs sm:text-sm text-slate-500 italic">No outstanding debts.</div>
              ) : (
                data.settlements.map((s: any, i: number) => (
-                 <div key={i} className="flex items-center justify-between text-sm">
-                   <div className="flex items-center gap-2 font-medium">
-                     <span>{getTargetName(s.from)}</span>
-                     <span className="text-slate-400">→</span>
-                     <span>{getTargetName(s.to)}</span>
+                 <div key={i} className="flex items-center justify-between text-xs sm:text-sm">
+                   <div className="flex items-center gap-1 sm:gap-2 font-medium truncate pr-2">
+                     <span className="truncate max-w-[60px] sm:max-w-[80px]">{getTargetName(s.from)}</span>
+                     <span className="text-slate-400 flex-shrink-0">→</span>
+                     <span className="truncate max-w-[60px] sm:max-w-[80px]">{getTargetName(s.to)}</span>
                    </div>
-                   <div className="font-semibold text-slate-900">
+                   <div className="font-semibold text-slate-900 flex-shrink-0">
                      ₹{s.amount.toLocaleString()}
                    </div>
                  </div>
