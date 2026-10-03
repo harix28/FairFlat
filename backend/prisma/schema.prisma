@@ -13,6 +13,7 @@ model User {
   email          String         @unique
   passwordHash   String?
   googleId       String?        @unique
+  telegramChatId String?        @unique
   resetToken     String?
   resetTokenExpiry DateTime?
   createdAt      DateTime       @default(now())

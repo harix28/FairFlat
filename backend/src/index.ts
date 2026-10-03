@@ -22,11 +22,15 @@ import { RoomioBotService } from './bot/botService';
 import { authenticateToken } from './middleware/auth';
 import { checkGroupMembership } from './middleware/groupAuth';
 import { initCronJobs } from './cron/recurringExpenseJob';
+import { startTelegramBot } from './bot/telegramBot';
 
 dotenv.config();
 
 // Start cron jobs
 initCronJobs();
+
+// Start Telegram Bot
+startTelegramBot();
 
 const app = express();
 const server = http.createServer(app);
