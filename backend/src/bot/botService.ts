@@ -109,8 +109,8 @@ export class RoomioBotService {
       }
     }
 
-    const isKeyValid = apiKey && apiKey.startsWith('AIza');
-    if (!isKeyValid || apiKey === 'mock-key') {
+    const isKeyValid = apiKey && apiKey !== 'mock-key';
+    if (!isKeyValid) {
       console.log('[RoomioBot] No valid API key, using fallback mock with context');
       return fallbackMock(text, dbCtx);
     }
