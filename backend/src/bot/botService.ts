@@ -20,15 +20,35 @@ export class RoomioBotService {
   public static async extractIntent(text: string): Promise<BotIntent> {
     const fallbackMock = (input: string): BotIntent => {
       const lowerText = input.toLowerCase();
-      if (lowerText.includes('paid') && lowerText.match(/\d+/)) {
+      
+      // Hinglish custom split detection
+      if ((lowerText.includes('pay') || lowerText.includes('paid') || lowerText.includes('diye')) && lowerText.includes('split') && lowerText.match(/\d+/g)?.length! >= 3) {
+         const nums = lowerText.match(/\d+/g)!.map(Number);
+         const amount = nums[0];
+         const p1Amount = nums[1];
+         const p2Amount = nums[2];
+         
+         return { 
+           reply: `Got it! I will split the ₹${amount}. You pay ₹${p1Amount} and Rahul pays ₹${p2Amount}. Sound good?`, 
+           intent: 'CREATE_EXPENSE', 
+           amount, 
+           payer: 'You', 
+           splitType: 'custom', 
+           title: 'Shared Expense', 
+           splitDetails: [{ name: "You", amount: p1Amount }, { name: "Rahul", amount: p2Amount }] 
+         };
+      }
+
+      // Basic English detection
+      if ((lowerText.includes('paid') || lowerText.includes('pay')) && lowerText.match(/\d+/)) {
         const amountMatch = lowerText.match(/\d+/);
         const amount = amountMatch ? parseInt(amountMatch[0]) : 0;
         let payer = 'You';
-        if (lowerText.includes('rahul paid')) payer = 'Rahul';
-        else if (lowerText.includes('aman paid')) payer = 'Aman';
+        if (lowerText.includes('rahul paid') || lowerText.includes('rahul ne pay')) payer = 'Rahul';
+        else if (lowerText.includes('aman paid') || lowerText.includes('aman ne pay')) payer = 'Aman';
         
         const participants = [];
-        if (lowerText.includes('me')) participants.push('Hari');
+        if (lowerText.includes('me') || lowerText.includes('mein') || lowerText.includes('i')) participants.push('You');
         if (lowerText.includes('rahul')) participants.push('Rahul');
         if (lowerText.includes('aman')) participants.push('Aman');
         
@@ -39,11 +59,10 @@ export class RoomioBotService {
           title = title.charAt(0).toUpperCase() + title.slice(1);
         }
 
-        // If they didn't specify anyone, default to "everyone" in a real app, but for now just empty array which gets handled by frontend
         return { reply: `Got it. Should I save this ${title} expense for ₹${amount} paid by ${payer}?`, intent: 'CREATE_EXPENSE', amount, payer, participants, splitType: 'equal', title };
       }
       if (lowerText.includes('owe me') || lowerText.includes('my balance') || lowerText.includes('how much do i owe')) return { reply: "You can check your balances in the Dashboard. I'm still learning to read live balances!", intent: 'GET_BALANCE' };
-      return { reply: "I didn't quite catch that. Try saying something like 'I paid 500 for pizza'.", intent: 'UNKNOWN' };
+      return { reply: "I didn't quite catch that. Try saying something like 'meine 500 pay kiye aur mein aur rahul split karenge 150 aur 350 mein'.", intent: 'UNKNOWN' };
     };
 
     if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'mock-key') {
