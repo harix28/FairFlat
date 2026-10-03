@@ -48,7 +48,7 @@ const Chat = () => {
   if (!activeGroup) return <div className="p-8 text-center text-slate-500">Select a group first.</div>;
 
   return (
-    <div className="max-w-4xl mx-auto h-[calc(100dvh-8rem)] flex flex-col">
+    <div className="max-w-4xl mx-auto h-[calc(100dvh-12rem)] md:h-[calc(100vh-8rem)] flex flex-col">
       <div className="mb-4">
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Household Chat</h1>
         <p className="text-slate-500 mt-1">Discuss bills, chores, and flatmate stuff here.</p>

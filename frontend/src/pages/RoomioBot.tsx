@@ -80,7 +80,7 @@ const RoomioBot = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto h-[calc(100dvh-8rem)] flex flex-col">
+    <div className="max-w-4xl mx-auto h-[calc(100dvh-12rem)] md:h-[calc(100vh-8rem)] flex flex-col">
       <div className="mb-4">
         <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
           <Bot className="w-8 h-8 text-blue-600" />
