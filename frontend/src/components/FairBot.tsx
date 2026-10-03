@@ -86,7 +86,7 @@ export function FairBot() {
     return (
       <button 
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 md:bottom-8 md:right-8 w-14 h-14 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-full shadow-lg flex items-center justify-center text-white hover:scale-110 transition-transform z-50 animate-bounce"
+        className="fixed bottom-24 right-4 md:bottom-8 md:right-8 w-14 h-14 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-full shadow-lg flex items-center justify-center text-white hover:scale-110 transition-transform z-50 animate-bounce"
       >
         <Bot className="w-7 h-7" />
       </button>
@@ -94,7 +94,7 @@ export function FairBot() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 md:bottom-8 md:right-8 w-[350px] h-[500px] bg-white rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden border border-slate-200">
+    <div className="fixed bottom-24 right-4 left-4 md:left-auto md:bottom-8 md:right-8 md:w-[350px] h-[60vh] md:h-[500px] bg-white rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden border border-slate-200">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 flex items-center justify-between text-white">
         <div className="flex items-center gap-2">
