@@ -137,7 +137,7 @@ export class RoomioBotService {
       if (match) {
          const jsonStr = match[0];
          const parsed = JSON.parse(jsonStr) as BotIntent;
-         if (parsed.intent !== 'UNKNOWN') return parsed;
+         return parsed;
       }
       
       // If Gemini returned UNKNOWN or failed to parse, try fallback
