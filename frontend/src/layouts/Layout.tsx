@@ -69,15 +69,13 @@ const Layout = () => {
     { name: 'Recurring', path: '/app/recurring', icon: Repeat, requiresGroup: true },
     { name: 'Chores', path: '/app/chores', icon: ListTodo, requiresGroup: true },
     { name: 'Shopping', path: '/app/shopping', icon: ShoppingCart, requiresGroup: true },
-    { name: 'Chat', path: '/app/chat', icon: MessageSquare, requiresGroup: true },
-    { name: 'RoomioBot', path: '/app/bot', icon: Bot, requiresGroup: true },
   ].filter(item => !item.requiresGroup || activeGroup);
 
   const bottomNavItems = [
     navItems.find(i => i.name === 'Dashboard'),
     navItems.find(i => i.name === 'Expenses'),
-    navItems.find(i => i.name === 'Chat'),
-    navItems.find(i => i.name === 'RoomioBot'),
+    navItems.find(i => i.name === 'Settlements'),
+    navItems.find(i => i.name === 'Chores'),
   ].filter(Boolean) as typeof navItems;
 
   return (
@@ -123,7 +121,24 @@ const Layout = () => {
         <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 z-10">
           <div className="md:hidden text-xl font-bold text-blue-600">Roomio</div>
           <div className="flex-1" />
-          <div className="flex items-center gap-4 relative">
+          <div className="flex items-center gap-2 sm:gap-4 relative">
+            {activeGroup && (
+              <>
+                <Link 
+                  to="/app/bot"
+                  className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors relative"
+                >
+                  <Bot className="w-5 h-5" />
+                </Link>
+                <Link 
+                  to="/app/chat"
+                  className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                >
+                  <MessageSquare className="w-5 h-5" />
+                </Link>
+              </>
+            )}
+
             <div className="relative">
               <button 
                 onClick={() => {
