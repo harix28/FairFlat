@@ -77,16 +77,16 @@ export class FairBotService {
     }
   }
 
-  public static async scanReceipt(base64Image: string, mimeType: string): Promise<any> {
+  public static async scanReceipt(base64Image: string, mimeType: string, groupId?: string): Promise<any> {
     if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'mock-key') {
       // Mock fallback
       return {
         merchant: 'Mock AI Restaurant',
         date: new Date().toISOString(),
         items: [
-          { name: 'Pizza', quantity: 1, price: 800 },
-          { name: 'Burger', quantity: 1, price: 400 },
-          { name: 'Drinks', quantity: 2, price: 300 }
+          { name: 'Pizza', quantity: 1, price: 800, participants: [] },
+          { name: 'Burger', quantity: 1, price: 400, participants: [] },
+          { name: 'Drinks', quantity: 2, price: 300, participants: [] }
         ],
         tax: 200,
         serviceCharge: 100,
@@ -95,15 +95,64 @@ export class FairBotService {
     }
 
     try {
+      let groupContext = '';
+      if (groupId) {
+        // dynamic import of prisma to avoid circular dependency issues at top level
+        const { prisma } = require('../prisma');
+        const members = await prisma.groupMember.findMany({
+          where: { groupId },
+          include: { user: { select: { id: true, name: true } } }
+        });
+        
+        // Fetch past itemized expenses to determine habits
+        const recentExpenses = await prisma.expense.findMany({
+          where: { groupId, splitType: 'itemized' },
+          orderBy: { date: 'desc' },
+          take: 10,
+          include: {
+            items: {
+              include: {
+                participants: {
+                  include: { user: { select: { name: true, id: true } } }
+                }
+              }
+            }
+          }
+        });
+
+        const memberInfo = members.map((m: any) => `{ id: "${m.user.id}", name: "${m.user.name}" }`).join(', ');
+        
+        let habitString = '';
+        if (recentExpenses.length > 0) {
+          habitString = 'Past household habits for reference:\n';
+          recentExpenses.forEach((exp: any) => {
+            exp.items.forEach((item: any) => {
+               const pNames = item.participants.map((p: any) => p.user.name).join(' and ');
+               if (pNames) {
+                 habitString += `- "${item.name}" is typically consumed/paid by ${pNames}.\n`;
+               }
+            });
+          });
+        }
+
+        groupContext = `
+        The user is scanning a receipt for a group. Here are the group members: [${memberInfo}].
+        ${habitString}
+        If you can intelligently guess who consumed which item (e.g., based on the past household habits provided, or if the item explicitly has someone's name on it in the receipt), assign their user 'id' in the 'participants' array for that item. If unsure, leave the 'participants' array empty for that item, and the frontend will default to all members.
+        `;
+      }
+
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       const prompt = `
         Analyze this receipt and extract the structured data.
+        ${groupContext}
+        
         Return ONLY a JSON object exactly matching this format, with no markdown formatting around it:
         {
           "merchant": "string",
           "date": "ISO string",
           "items": [
-            { "name": "string", "quantity": number, "price": number }
+            { "name": "string", "quantity": number, "price": number, "participants": ["user_id_1", "user_id_2"] }
           ],
           "tax": number,
           "serviceCharge": number,

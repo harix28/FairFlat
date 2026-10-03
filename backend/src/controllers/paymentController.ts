@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { prisma } from '../prisma';
 import { AuthRequest } from '../middleware/auth';
+import { createAndEmitNotification } from './notificationController';
 
 export const recordPayment = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -55,15 +56,15 @@ export const recordPayment = async (req: AuthRequest, res: Response): Promise<vo
       io.to(groupId).emit('payment_recorded', payment);
     }
 
-    // Optionally create a notification for the receiver
-    await prisma.notification.create({
-      data: {
-        userId: toUserId,
-        title: 'Payment Received',
-        message: `${payment.fromUser.name} paid you $${amount}`,
-        type: 'settlement'
-      }
-    });
+    if (io) {
+      await createAndEmitNotification(
+        io,
+        toUserId,
+        'Payment Received',
+        `${payment.fromUser.name} paid you ₹${amount}`,
+        'settlement'
+      );
+    }
 
     res.status(201).json(payment);
   } catch (error: any) {

@@ -38,6 +38,7 @@ export const expenseApi = {
   recordPayment: async (groupId: string, data: any) => api.post(`/groups/${groupId}/payments`, data),
   getRecurring: async (groupId: string) => api.get(`/groups/${groupId}/recurring`),
   createRecurring: async (groupId: string, data: any) => api.post(`/groups/${groupId}/recurring`, data),
+  updateRecurring: async (groupId: string, expenseId: string, data: any) => api.put(`/groups/${groupId}/recurring/${expenseId}`, data),
 };
 
 
@@ -58,17 +59,17 @@ export const shoppingApi = {
 
 export const botApi = {
   chat: async (data: any) => api.post('/bot/chat', data),
-  scanReceipt: async (base64Image: string, mimeType: string) => api.post('/bot/scan', { base64Image, mimeType })
+  scanReceipt: async (base64Image: string, mimeType: string, groupId?: string) => api.post('/bot/scan', { base64Image, mimeType, groupId })
 };
 
-export const scanReceipt = async (imageFile: File) => {
+export const scanReceipt = async (imageFile: File, groupId?: string) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(imageFile);
     reader.onload = async () => {
       try {
         const base64Str = (reader.result as string).split(',')[1];
-        const res = await botApi.scanReceipt(base64Str, imageFile.type);
+        const res = await botApi.scanReceipt(base64Str, imageFile.type, groupId);
         resolve(res.data);
       } catch (e) {
         reject(e);
@@ -78,19 +79,22 @@ export const scanReceipt = async (imageFile: File) => {
   });
 };
 
-// Wrapper for backward compatibility with existing components
 export const fetchDashboardData = async (groupId: string) => {
-  if (!groupId) return { expenses: [], balances: {}, settlements: [] };
+  if (!groupId) return { expenses: [], balances: {}, settlements: [], activity: [], recurring: [] };
   try {
-    const [expensesRes, balancesRes] = await Promise.all([
+    const [expensesRes, balancesRes, activityRes, recurringRes] = await Promise.all([
       expenseApi.getExpenses(groupId),
-      expenseApi.getBalances(groupId)
+      expenseApi.getBalances(groupId),
+      api.get(`/groups/${groupId}/activity`),
+      expenseApi.getRecurring(groupId)
     ]);
 
     return {
       expenses: expensesRes.data,
       balances: balancesRes.data.balances,
       settlements: balancesRes.data.settlements,
+      activity: activityRes.data,
+      recurring: recurringRes.data
     };
   } catch (error) {
     console.error('Error fetching dashboard data:', error);

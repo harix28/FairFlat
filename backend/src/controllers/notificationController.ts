@@ -1,6 +1,18 @@
 import { Response } from 'express';
 import { prisma } from '../prisma';
 import { AuthRequest } from '../middleware/auth';
+import { Server } from 'socket.io';
+
+export const createAndEmitNotification = async (io: Server, userId: string, title: string, message: string, type: string) => {
+  try {
+    await prisma.notification.create({
+      data: { userId, title, message, type }
+    });
+    io.to(userId).emit('new_notification');
+  } catch (err) {
+    console.error('Error creating notification:', err);
+  }
+};
 
 export const sendReminder = async (req: AuthRequest, res: Response): Promise<void> => {
   try {

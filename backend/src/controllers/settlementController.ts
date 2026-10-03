@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../prisma';
-import { calculateSettlements, Balance } from '../algorithms/settlementEngine';
+import { calculateSettlements, Balance, calculateUnsimplifiedSettlements } from '../algorithms/settlementEngine';
 import { AuthRequest } from '../middleware/auth';
 
 export const getGroupBalancesAndSettlements = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -44,10 +44,13 @@ export const getGroupBalancesAndSettlements = async (req: AuthRequest, res: Resp
       addBalance(pay.toUserId, -pay.amount);
     });
     
-    // 4. Calculate optimized settlements
-    const settlements = calculateSettlements(balances);
+    // 4. Calculate optimized settlements (greedy simplification)
+    const simplifiedSettlements = calculateSettlements(balances);
+
+    // 5. Calculate unsimplified exact settlements
+    const settlements = calculateUnsimplifiedSettlements(expenses, payments);
     
-    res.status(200).json({ balances, settlements });
+    res.status(200).json({ balances, settlements, simplifiedSettlements });
   } catch (error: any) {
     console.error('Error fetching balances:', error);
     res.status(500).json({ error: 'Internal server error' });

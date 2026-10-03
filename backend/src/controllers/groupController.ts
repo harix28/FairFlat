@@ -172,6 +172,32 @@ export const leaveGroup = async (req: AuthRequest, res: Response): Promise<void>
       return;
     }
 
+    // Calculate user's balance before allowing them to leave
+    const expenses = await prisma.expense.findMany({
+      where: { groupId },
+      include: { participants: true }
+    });
+    
+    const payments = await prisma.payment.findMany({
+      where: { groupId, status: 'completed' }
+    });
+    
+    let myBalance = 0;
+    expenses.forEach(exp => {
+      if (exp.payerId === userId) myBalance += exp.amount;
+      const myPart = exp.participants.find(p => p.userId === userId);
+      if (myPart) myBalance -= myPart.calculatedAmount;
+    });
+    payments.forEach(pay => {
+      if (pay.fromUserId === userId) myBalance += pay.amount;
+      if (pay.toUserId === userId) myBalance -= pay.amount;
+    });
+
+    if (Math.abs(myBalance) > 0.01) {
+      res.status(400).json({ error: 'You cannot leave the group until all your balances are settled (₹' + myBalance.toFixed(2) + ').' });
+      return;
+    }
+
     await prisma.groupMember.delete({
       where: { userId_groupId: { userId, groupId } }
     });

@@ -43,6 +43,16 @@ const RecurringExpenses = () => {
     }
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string, isActive: boolean }) => {
+      if (!activeGroup?.id) throw new Error('No active group');
+      return expenseApi.updateRecurring(activeGroup.id, id, { isActive });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recurring', activeGroup?.id] });
+    }
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     createMutation.mutate(formData);
@@ -138,6 +148,17 @@ const RecurringExpenses = () => {
                   <Calendar className="w-4 h-4 mr-2 text-blue-500" />
                   <span className="font-medium capitalize">Every {item.interval}</span>
                   <span className="ml-auto text-slate-400">Next: {new Date(item.nextRun).toLocaleDateString()}</span>
+                </div>
+                <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
+                  <Button 
+                    variant={item.isActive ? "outline" : "default"} 
+                    size="sm"
+                    className={item.isActive ? "text-slate-600 hover:text-orange-600 hover:bg-orange-50" : "bg-emerald-600 hover:bg-emerald-700"}
+                    onClick={() => updateMutation.mutate({ id: item.id, isActive: !item.isActive })}
+                    disabled={updateMutation.isPending}
+                  >
+                    {item.isActive ? 'Pause Automation' : 'Resume Automation'}
+                  </Button>
                 </div>
               </CardContent>
             </Card>

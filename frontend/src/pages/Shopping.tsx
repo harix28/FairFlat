@@ -116,7 +116,7 @@ const Shopping = () => {
             <div className="space-y-3">
               <div className="flex items-center justify-between pl-1">
                 <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Recently Purchased</h3>
-                <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-8" onClick={() => navigate('/app/expenses/new')}>
+                <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-8" onClick={() => navigate('/app/expenses/new', { state: { purchasedItems } })}>
                   Convert to Expense <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
               </div>

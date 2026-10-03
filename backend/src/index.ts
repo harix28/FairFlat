@@ -10,7 +10,7 @@ import { getBalanceDetails } from './controllers/balanceDetailsController';
 import { recordPayment } from './controllers/paymentController';
 import { createGroup, getUserGroups, joinGroup, updateGroup, leaveGroup } from './controllers/groupController';
 import { getUserNotifications, markNotificationAsRead, markAllAsRead, sendReminder } from './controllers/notificationController';
-import { createRecurringExpense, getGroupRecurringExpenses } from './controllers/recurringExpenseController';
+import { createRecurringExpense, getGroupRecurringExpenses, updateRecurringExpense } from './controllers/recurringExpenseController';
 import { createChore, getChores, updateChoreAssignment, deleteChore } from './controllers/choreController';
 import { createShoppingItem, getShoppingItems, updateShoppingItem, deleteShoppingItem } from './controllers/shoppingController';
 import { getGroupStats } from './controllers/statsController';
@@ -19,6 +19,7 @@ import { getMessages, createMessage, deleteMessage } from './controllers/chatCon
 import { getActivityLogs } from './controllers/activityController';
 import { FairBotService } from './bot/botService';
 import { authenticateToken } from './middleware/auth';
+import { checkGroupMembership } from './middleware/groupAuth';
 import { initCronJobs } from './cron/recurringExpenseJob';
 
 dotenv.config();
@@ -57,43 +58,44 @@ app.put('/api/auth/profile', authenticateToken, updateProfile);
 app.post('/api/groups', authenticateToken, createGroup);
 app.get('/api/groups', authenticateToken, getUserGroups);
 app.post('/api/groups/join', authenticateToken, joinGroup);
-app.put('/api/groups/:groupId', authenticateToken, updateGroup);
-app.delete('/api/groups/:groupId/leave', authenticateToken, leaveGroup);
+app.put('/api/groups/:groupId', authenticateToken, checkGroupMembership, updateGroup);
+app.delete('/api/groups/:groupId/leave', authenticateToken, checkGroupMembership, leaveGroup);
 
 // Expense Routes (Protected)
-app.post('/api/groups/:groupId/expenses', authenticateToken, createExpense);
-app.get('/api/groups/:groupId/expenses', authenticateToken, getGroupExpenses);
-app.delete('/api/groups/:groupId/expenses/:expenseId', authenticateToken, deleteExpense);
-app.post('/api/groups/:groupId/recurring', authenticateToken, createRecurringExpense);
-app.get('/api/groups/:groupId/recurring', authenticateToken, getGroupRecurringExpenses);
+app.post('/api/groups/:groupId/expenses', authenticateToken, checkGroupMembership, createExpense);
+app.get('/api/groups/:groupId/expenses', authenticateToken, checkGroupMembership, getGroupExpenses);
+app.delete('/api/groups/:groupId/expenses/:expenseId', authenticateToken, checkGroupMembership, deleteExpense);
+app.post('/api/groups/:groupId/recurring', authenticateToken, checkGroupMembership, createRecurringExpense);
+app.get('/api/groups/:groupId/recurring', authenticateToken, checkGroupMembership, getGroupRecurringExpenses);
+app.put('/api/groups/:groupId/recurring/:expenseId', authenticateToken, checkGroupMembership, updateRecurringExpense);
 
 // Settlement Routes (Protected)
-app.get('/api/groups/:groupId/balances', authenticateToken, getGroupBalancesAndSettlements);
-app.get('/api/groups/:groupId/balance-details', authenticateToken, getBalanceDetails);
-app.post('/api/groups/:groupId/payments', authenticateToken, recordPayment);
+app.get('/api/groups/:groupId/balances', authenticateToken, checkGroupMembership, getGroupBalancesAndSettlements);
+app.get('/api/groups/:groupId/balance-details', authenticateToken, checkGroupMembership, getBalanceDetails);
+app.post('/api/groups/:groupId/payments', authenticateToken, checkGroupMembership, recordPayment);
 
 // Chores Routes (Protected)
-app.post('/api/groups/:groupId/chores', authenticateToken, createChore);
-app.get('/api/groups/:groupId/chores', authenticateToken, getChores);
-app.put('/api/groups/:groupId/chores/assignments/:assignmentId', authenticateToken, updateChoreAssignment);
-app.delete('/api/groups/:groupId/chores/:choreId', authenticateToken, deleteChore);
+app.post('/api/groups/:groupId/chores', authenticateToken, checkGroupMembership, createChore);
+app.get('/api/groups/:groupId/chores', authenticateToken, checkGroupMembership, getChores);
+app.put('/api/groups/:groupId/chores/assignments/:assignmentId', authenticateToken, checkGroupMembership, updateChoreAssignment);
+app.delete('/api/groups/:groupId/chores/:choreId', authenticateToken, checkGroupMembership, deleteChore);
 
 // Shopping Routes (Protected)
-app.post('/api/groups/:groupId/shopping', authenticateToken, createShoppingItem);
-app.get('/api/groups/:groupId/shopping', authenticateToken, getShoppingItems);
-app.put('/api/groups/:groupId/shopping/:itemId', authenticateToken, updateShoppingItem);
-app.delete('/api/groups/:groupId/shopping/:itemId', authenticateToken, deleteShoppingItem);
+app.post('/api/groups/:groupId/shopping', authenticateToken, checkGroupMembership, createShoppingItem);
+app.get('/api/groups/:groupId/shopping', authenticateToken, checkGroupMembership, getShoppingItems);
+app.put('/api/groups/:groupId/shopping/:itemId', authenticateToken, checkGroupMembership, updateShoppingItem);
+app.delete('/api/groups/:groupId/shopping/:itemId', authenticateToken, checkGroupMembership, deleteShoppingItem);
 
 // Chat Routes (Protected)
-app.get('/api/groups/:groupId/messages', authenticateToken, getMessages);
-app.post('/api/groups/:groupId/messages', authenticateToken, createMessage);
-app.delete('/api/groups/:groupId/messages/:messageId', authenticateToken, deleteMessage);
+app.get('/api/groups/:groupId/messages', authenticateToken, checkGroupMembership, getMessages);
+app.post('/api/groups/:groupId/messages', authenticateToken, checkGroupMembership, createMessage);
+app.delete('/api/groups/:groupId/messages/:messageId', authenticateToken, checkGroupMembership, deleteMessage);
 
 // Activity Route (Protected)
-app.get('/api/groups/:groupId/activity', authenticateToken, getActivityLogs);
+app.get('/api/groups/:groupId/activity', authenticateToken, checkGroupMembership, getActivityLogs);
 
 // Stats Route (Protected)
-app.get('/api/groups/:groupId/stats', authenticateToken, getGroupStats);
+app.get('/api/groups/:groupId/stats', authenticateToken, checkGroupMembership, getGroupStats);
 
 // Notification Routes (Protected)
 app.get('/api/notifications', authenticateToken, getUserNotifications);
@@ -111,11 +113,11 @@ app.post('/api/bot/chat', authenticateToken, async (req, res) => {
 });
 
 app.post('/api/bot/scan', authenticateToken, async (req, res) => {
-  const { base64Image, mimeType } = req.body;
+  const { base64Image, mimeType, groupId } = req.body;
   if (!base64Image) return res.status(400).json({ error: 'Image is required' });
   
   try {
-    const data = await FairBotService.scanReceipt(base64Image, mimeType || 'image/jpeg');
+    const data = await FairBotService.scanReceipt(base64Image, mimeType || 'image/jpeg', groupId);
     res.json(data);
   } catch (error) {
     res.status(500).json({ error: 'Failed to scan receipt' });
@@ -127,6 +129,10 @@ io.on('connection', (socket) => {
   socket.on('join_group', (groupId) => {
     socket.join(groupId);
     console.log(`User joined group: ${groupId}`);
+  });
+  socket.on('join_user', (userId) => {
+    socket.join(userId);
+    console.log(`User joined personal channel: ${userId}`);
   });
 });
 

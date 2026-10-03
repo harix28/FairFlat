@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../prisma';
 import { calculateFairness, ExpenseInput, SplitType } from '../algorithms/fairnessEngine';
 import { AuthRequest } from '../middleware/auth';
+import { createAndEmitNotification } from './notificationController';
 
 export const createExpense = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -98,6 +99,20 @@ export const createExpense = async (req: AuthRequest, res: Response): Promise<vo
     // Real-Time Notification via WebSockets
     if ((req as any).io) {
       (req as any).io.to(groupId).emit('new_expense', expense);
+
+      // Notify participants
+      const payer = await prisma.user.findUnique({ where: { id: payerId } });
+      for (const p of participants) {
+        if (p.userId !== payerId && fairnessResult[p.userId] > 0) {
+          await createAndEmitNotification(
+            (req as any).io,
+            p.userId,
+            'New Expense Added',
+            `${payer?.name || 'Someone'} added "${title}". Your share is ₹${fairnessResult[p.userId].toFixed(2)}.`,
+            'expense'
+          );
+        }
+      }
     }
 
     res.status(201).json({ message: 'Expense created successfully', expense, fairnessResult });

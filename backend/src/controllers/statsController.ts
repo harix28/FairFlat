@@ -62,6 +62,38 @@ export const getGroupStats = async (req: AuthRequest, res: Response): Promise<vo
     });
     const expenseTrend = Object.entries(trendMap).map(([month, amount]) => ({ month, amount }));
 
+    // Household Contributions Leaderboard
+    const groupMembers = await prisma.groupMember.findMany({
+      where: { groupId },
+      include: { user: { select: { id: true, name: true } } }
+    });
+
+    const memberContributions = await Promise.all(
+      groupMembers.map(async (member) => {
+        const choresDone = await prisma.choreAssignment.count({
+          where: { userId: member.userId, status: 'completed', chore: { groupId } }
+        });
+        const itemsBought = await prisma.shoppingItem.count({
+          where: { groupId, status: 'purchased', purchasedBy: member.userId }
+        });
+        const expensesPaid = await prisma.expense.count({
+          where: { groupId, payerId: member.userId }
+        });
+
+        return {
+          userId: member.userId,
+          name: member.user.name,
+          choresDone,
+          itemsBought,
+          expensesPaid,
+          score: (choresDone * 10) + (itemsBought * 5) + (expensesPaid * 2) // arbitrary fun score
+        };
+      })
+    );
+    
+    // Sort by score descending
+    memberContributions.sort((a, b) => b.score - a.score);
+
     res.json({
       totalExpenses,
       totalPaid,
@@ -69,6 +101,7 @@ export const getGroupStats = async (req: AuthRequest, res: Response): Promise<vo
       completedChores,
       totalShoppingSpend,
       expenseTrend,
+      memberContributions,
     });
   } catch (error: any) {
     console.error('Error fetching group stats:', error);

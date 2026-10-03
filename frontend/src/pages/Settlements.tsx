@@ -10,6 +10,7 @@ const Settlements = () => {
   const { user, activeGroup } = useAppContext();
   const queryClient = useQueryClient();
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [isSimplified, setIsSimplified] = useState(false);
 
   const getUserName = (userId: string) => {
     if (userId === user?.id) return 'You';
@@ -50,7 +51,10 @@ const Settlements = () => {
     );
   }
 
-  const settlements = data.settlements;
+  const { settlements, simplifiedSettlements } = data;
+  const displaySettlements = isSimplified ? simplifiedSettlements : settlements;
+  
+  const hasSimplification = simplifiedSettlements && settlements && simplifiedSettlements.length < settlements.length;
 
   const handleMarkPaid = (s: any, index: number) => {
     setProcessingId(index.toString());
@@ -59,20 +63,44 @@ const Settlements = () => {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Settlements</h1>
-        <p className="text-slate-500 mt-1">Settle up with your group in the fewest possible transactions.</p>
+        <p className="text-slate-500 mt-1">Settle up with your group and clear balances.</p>
       </div>
 
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 mb-8 flex items-center justify-between">
-        <div>
-          <h3 className="font-semibold text-blue-900 text-lg">Algorithm Active</h3>
-          <p className="text-sm text-blue-700 mt-1 max-w-md">Our Settlement Engine has reduced all group debts down to just {settlements.length} essential transaction{settlements.length !== 1 ? 's' : ''}.</p>
+      {hasSimplification && !isSimplified && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-5 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="font-semibold text-blue-900 text-lg flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-blue-600" />
+              Simplification Suggestion
+            </h3>
+            <p className="text-sm text-blue-700 mt-1">
+              You can settle all debts with just {simplifiedSettlements.length} transaction{simplifiedSettlements.length !== 1 ? 's' : ''} instead of {settlements.length}.
+            </p>
+          </div>
+          <Button onClick={() => setIsSimplified(true)} className="bg-blue-600 hover:bg-blue-700 text-white shrink-0">
+            Accept Simplification
+          </Button>
         </div>
-        <div className="hidden sm:block">
-          <CheckCircle2 className="w-12 h-12 text-blue-300" />
+      )}
+
+      {isSimplified && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="font-semibold text-emerald-900 text-lg flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+              Smart Debt Simplification Active
+            </h3>
+            <p className="text-sm text-emerald-700 mt-1">
+              Debts have been mathematically minimized to {simplifiedSettlements.length} transaction{simplifiedSettlements.length !== 1 ? 's' : ''}.
+            </p>
+          </div>
+          <Button variant="outline" onClick={() => setIsSimplified(false)} className="shrink-0 text-emerald-700 border-emerald-300 hover:bg-emerald-100">
+            Revert to Exact Debts
+          </Button>
         </div>
-      </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -81,7 +109,7 @@ const Settlements = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {settlements.length === 0 && (
+            {displaySettlements.length === 0 && (
               <div className="text-center py-10">
                 <CheckCircle2 className="w-16 h-16 text-emerald-400 mx-auto mb-4" />
                 <h3 className="text-xl font-bold text-slate-800">You're all settled up!</h3>
@@ -89,7 +117,7 @@ const Settlements = () => {
               </div>
             )}
             
-            {settlements.map((s: any, i: number) => (
+            {displaySettlements.map((s: any, i: number) => (
               <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:border-blue-300 hover:shadow-sm transition-all gap-4">
                 
                 <div className="flex items-center gap-4 flex-1">

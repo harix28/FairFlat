@@ -2,57 +2,21 @@ import { ArrowUpRight, ArrowDownRight, CreditCard, Utensils, Loader2, Users, Plu
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Link } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchDashboardData, expenseApi, notificationApi } from '../services/api';
+import { useQuery } from '@tanstack/react-query';
+import { fetchDashboardData } from '../services/api';
 import { useAppContext } from '../context/AppContext';
 import { useRealtimeUpdates } from '../hooks/useRealtimeUpdates';
-import BalanceTable from '../components/ui/BalanceTable';
 import ChoresSummary from '../components/ui/ChoresSummary';
 import ShoppingSummary from '../components/ui/ShoppingSummary';
-import { useState } from 'react';
 
 const Dashboard = () => {
-  const queryClient = useQueryClient();
-  const [processingId, setProcessingId] = useState<string | null>(null);
   const { user, activeGroup, groups } = useAppContext();
   useRealtimeUpdates(activeGroup?.id);
-  const [reminded, setReminded] = useState<Record<string, boolean>>({});
   
   const { data, isLoading, error } = useQuery({
     queryKey: ['dashboard', activeGroup?.id],
     queryFn: () => fetchDashboardData(activeGroup?.id || ''),
     enabled: !!activeGroup?.id
-  });
-
-  const payMutation = useMutation({
-    mutationFn: async (settlement: any) => {
-      if (!activeGroup?.id) throw new Error('No active group');
-      return expenseApi.recordPayment(activeGroup.id, {
-        fromUserId: settlement.from,
-        toUserId: settlement.to,
-        amount: settlement.amount
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dashboard', activeGroup?.id] });
-      setProcessingId(null);
-    },
-    onError: () => {
-      alert('Failed to record payment');
-      setProcessingId(null);
-    }
-  });
-
-  const remindMutation = useMutation({
-    mutationFn: async (data: { targetUserId: string, amount: number }) => {
-      return notificationApi.sendReminder(data);
-    },
-    onSuccess: (_, variables) => {
-      setReminded(prev => ({ ...prev, [variables.targetUserId]: true }));
-      setTimeout(() => {
-        setReminded(prev => ({ ...prev, [variables.targetUserId]: false }));
-      }, 3000);
-    }
   });
 
   const currentUserName = user?.name || 'User';
@@ -115,20 +79,26 @@ const Dashboard = () => {
   // Calculate totals for UI based on the actual ledger
   let totalOwedToYou = 0;
   let totalYouOwe = 0;
-  let oweCount = 0;
-  let owedCount = 0;
+  let totalHousehold = 0;
+  let yourSpending = 0;
   
   const currentUserId = user?.id || 'Unknown';
   const myBalance = data.balances[currentUserId] || 0;
 
+  data.expenses.forEach((expense: any) => {
+    totalHousehold += expense.amount;
+    const myShare = expense.participants?.find((p: any) => p.userId === currentUserId);
+    if (myShare) {
+      yourSpending += myShare.calculatedAmount;
+    }
+  });
+
   data.settlements.forEach((s: any) => {
     if (s.to === currentUserId) {
       totalOwedToYou += s.amount;
-      owedCount++;
     }
     if (s.from === currentUserId) {
       totalYouOwe += s.amount;
-      oweCount++;
     }
   });
 
@@ -138,12 +108,17 @@ const Dashboard = () => {
     return member ? member.user.name : userId.substring(0, 4);
   };
 
+  const getTargetName = (userId: string) => {
+    const name = getUserName(userId);
+    return name === 'You' ? 'You' : name;
+  };
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h1>
-          <p className="text-slate-500 mt-1">Welcome back, {currentUserName}. Here's your financial overview.</p>
+          <p className="text-slate-500 mt-1">Welcome back, {currentUserName}. Here's your household overview.</p>
         </div>
         <div className="flex gap-3 w-full sm:w-auto">
           <Button asChild className="flex-1 sm:flex-none" variant="outline">
@@ -155,163 +130,157 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Main Balances */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white border-none shadow-md overflow-hidden relative">
-          <div className="absolute top-0 right-0 p-4 opacity-20">
-            <CreditCard className="w-24 h-24 transform rotate-12 translate-x-4 -translate-y-4" />
-          </div>
+      {/* Money Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
           <CardHeader className="pb-2">
-            <CardDescription className="text-blue-100 font-medium text-sm uppercase tracking-wider">Total Net Balance</CardDescription>
-            <CardTitle className="text-4xl">₹{Math.abs(myBalance).toLocaleString(undefined, {minimumFractionDigits: 2})}</CardTitle>
+            <CardDescription>Household Expenses</CardDescription>
+            <CardTitle className="text-2xl">₹{totalHousehold.toLocaleString(undefined, {minimumFractionDigits: 2})}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-blue-100 mt-1 flex items-center gap-1">
-              {myBalance >= 0 ? (
-                <><ArrowUpRight className="w-4 h-4 text-emerald-300" /> You are owed overall</>
-              ) : (
-                <><ArrowDownRight className="w-4 h-4 text-red-300" /> You owe overall</>
-              )}
-            </p>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Your Spending</CardDescription>
+            <CardTitle className="text-2xl">₹{yourSpending.toLocaleString(undefined, {minimumFractionDigits: 2})}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card className="bg-slate-50">
+          <CardHeader className="pb-2">
+            <CardDescription className="flex justify-between">
+              <span>You Owe</span>
+              <span className="text-red-500 font-semibold">₹{totalYouOwe.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+            </CardDescription>
+            <CardDescription className="flex justify-between">
+              <span>You are Owed</span>
+              <span className="text-emerald-500 font-semibold">₹{totalOwedToYou.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-2 border-t mt-2 border-slate-200">
+             <div className="flex justify-between items-center text-lg font-bold">
+               <span>Net Balance</span>
+               <span className={myBalance >= 0 ? "text-emerald-600" : "text-red-600"}>
+                 {myBalance >= 0 ? '+' : ''}₹{myBalance.toLocaleString(undefined, {minimumFractionDigits: 2})}
+               </span>
+             </div>
           </CardContent>
         </Card>
-
+        
+        {/* Settlement Debt graph snippet */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div className="space-y-1">
-              <CardDescription>You Owe</CardDescription>
-              <CardTitle className="text-2xl text-red-500">₹{totalYouOwe.toLocaleString(undefined, {minimumFractionDigits: 2})}</CardTitle>
-            </div>
-            <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center">
-              <ArrowUpRight className="w-5 h-5 text-red-500" />
-            </div>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Outstanding Debts</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-sm text-slate-500 mt-2">To {oweCount} people</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div className="space-y-1">
-              <CardDescription>You Are Owed</CardDescription>
-              <CardTitle className="text-2xl text-emerald-500">₹{totalOwedToYou.toLocaleString(undefined, {minimumFractionDigits: 2})}</CardTitle>
-            </div>
-            <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center">
-              <ArrowDownRight className="w-5 h-5 text-emerald-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm text-slate-500 mt-2">From {owedCount} people</div>
+          <CardContent className="space-y-3">
+             {data.settlements.length === 0 ? (
+               <div className="text-sm text-slate-500 italic">No outstanding debts.</div>
+             ) : (
+               data.settlements.map((s: any, i: number) => (
+                 <div key={i} className="flex items-center justify-between text-sm">
+                   <div className="flex items-center gap-2 font-medium">
+                     <span>{getTargetName(s.from)}</span>
+                     <span className="text-slate-400">→</span>
+                     <span>{getTargetName(s.to)}</span>
+                   </div>
+                   <div className="font-semibold text-slate-900">
+                     ₹{s.amount.toLocaleString()}
+                   </div>
+                 </div>
+               ))
+             )}
           </CardContent>
         </Card>
       </div>
 
-{/* Summaries */}
-<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-  <BalanceTable groupId={activeGroup?.id || ''} />
-  <ChoresSummary groupId={activeGroup?.id || ''} />
-  <ShoppingSummary groupId={activeGroup?.id || ''} />
-</div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        <ChoresSummary groupId={activeGroup?.id || ''} />
+        <ShoppingSummary groupId={activeGroup?.id || ''} />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Activity */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Recent Expenses</CardTitle>
+        {/* Upcoming Bills */}
+        <Card className="lg:col-span-1">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle>Upcoming Bills</CardTitle>
             <Button variant="ghost" size="sm" asChild>
-              <Link to="/app/expenses">View All</Link>
+              <Link to="/app/expenses/recurring">Manage</Link>
             </Button>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
-              {data.expenses.slice(0, 5).map((expense: any, i: number) => (
-                <div key={i} className="flex items-center justify-between group">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-blue-100 text-blue-600`}>
-                      <Utensils className="w-6 h-6" />
-                    </div>
+            <div className="space-y-4">
+              {(!data.recurring || data.recurring.length === 0) && (
+                <div className="text-sm text-slate-500 italic mt-2">No recurring bills set.</div>
+              )}
+              {data.recurring?.filter((r: any) => r.isActive).sort((a: any, b: any) => new Date(a.nextRun).getTime() - new Date(b.nextRun).getTime()).slice(0, 5).map((bill: any, i: number) => {
+                const daysUntil = Math.ceil((new Date(bill.nextRun).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
+                return (
+                  <div key={i} className="flex items-center justify-between border-b border-slate-100 last:border-0 pb-3 last:pb-0 pt-2">
                     <div>
-                      <h4 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{expense.title}</h4>
-                      <p className="text-sm text-slate-500">{expense.payerId === currentUserId ? 'You paid' : `${getUserName(expense.payerId)} paid`} • {new Date(expense.date).toLocaleDateString()}</p>
+                      <p className="font-semibold text-slate-900">{bill.title}</p>
+                      <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                        <span className={`w-2 h-2 rounded-full ${daysUntil <= 3 ? 'bg-red-500' : 'bg-emerald-500'}`}></span>
+                        {daysUntil <= 0 ? 'Due today' : `Due in ${daysUntil} days`}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-slate-900">₹{bill.amount.toLocaleString()}</p>
+                      <p className="text-xs text-slate-400 capitalize">{bill.interval}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-semibold text-slate-900">₹{expense.amount.toLocaleString()}</div>
-                    <div className={`text-sm ${expense.payerId === currentUserId ? 'text-emerald-500' : 'text-slate-500'}`}>
-                      {expense.participants.length} participants
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
 
-        {/* Quick Settlements */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Who Owes You</CardTitle>
-            <CardDescription>Top outstanding balances</CardDescription>
+        {/* Recent Activity Feed */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Recent Activity</CardTitle>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/app/activity">View All</Link>
+            </Button>
           </CardHeader>
           <CardContent>
-            <div className="space-y-5">
-              {data.settlements.filter((s: any) => s.to === currentUserId).length === 0 && (
-                <div className="text-sm text-slate-500 italic">No one owes you money right now!</div>
+            <div className="space-y-6">
+              {data.activity?.length === 0 && (
+                <div className="text-sm text-slate-500 italic">No recent activity.</div>
               )}
-              {data.settlements.filter((s: any) => s.to === currentUserId).map((s: any, i: number) => (
-                <div key={i} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-medium text-slate-600">
-                      {getUserName(s.from).charAt(0)}
+              {data.activity?.slice(0, 10).map((act: any, i: number) => {
+                const actUser = act.user?.id === currentUserId ? 'You' : (act.user?.name || 'Someone');
+                let icon = <Utensils className="w-5 h-5 text-slate-500" />;
+                let bgColor = "bg-slate-100";
+                let description = act.details || act.action;
+                
+                if (act.entity === 'expense') {
+                  icon = <CreditCard className="w-5 h-5 text-blue-600" />;
+                  bgColor = "bg-blue-100";
+                  description = `${actUser} ${act.action} an expense`;
+                } else if (act.entity === 'chore') {
+                  bgColor = "bg-purple-100";
+                  description = `${actUser} ${act.action} a chore`;
+                } else if (act.entity === 'shopping') {
+                  bgColor = "bg-orange-100";
+                  description = `${actUser} ${act.action} a shopping item`;
+                } else if (act.entity === 'settlement') {
+                  bgColor = "bg-emerald-100";
+                  description = `${actUser} ${act.action} a settlement`;
+                }
+
+                return (
+                  <div key={i} className="flex items-center gap-4 group">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bgColor}`}>
+                      {icon}
                     </div>
-                    <span className="font-medium">{getUserName(s.from)}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-semibold text-emerald-500">₹{s.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
-                    <Button 
-                      size="sm" 
-                      variant={reminded[s.from] ? "default" : "outline"}
-                      className={`text-xs h-8 w-20 ${reminded[s.from] ? "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-500" : ""}`}
-                      disabled={remindMutation.isPending || reminded[s.from]}
-                      onClick={() => remindMutation.mutate({ targetUserId: s.from, amount: s.amount })}
-                    >
-                      {reminded[s.from] ? 'Sent!' : 'Remind'}
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            <div className="mt-8 pt-6 border-t border-slate-100 space-y-5">
-              <h4 className="font-medium text-sm text-slate-500 mb-4 uppercase tracking-wider">You Owe</h4>
-              {data.settlements.filter((s: any) => s.from === currentUserId).length === 0 && (
-                <div className="text-sm text-slate-500 italic">You don't owe anyone right now!</div>
-              )}
-              {data.settlements.filter((s: any) => s.from === currentUserId).map((s: any, i: number) => (
-                <div key={i} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-medium text-slate-600">
-                      {getUserName(s.to).charAt(0)}
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-slate-900 group-hover:text-blue-600 transition-colors">{description}</p>
+                      {act.details && <p className="text-xs text-slate-500 mt-0.5">{act.details}</p>}
                     </div>
-                    <span className="font-medium">{getUserName(s.to)}</span>
+                    <div className="text-xs text-slate-400">
+                      {new Date(act.createdAt).toLocaleDateString()}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-semibold text-red-500">₹{s.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
-                    <Button 
-                      size="sm" 
-                      className="text-xs h-8"
-                      onClick={() => {
-                        setProcessingId(`pay-${i}`);
-                        payMutation.mutate(s);
-                      }}
-                      disabled={processingId === `pay-${i}`}
-                    >
-                      {processingId === `pay-${i}` ? 'Paying...' : 'Pay'}
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>

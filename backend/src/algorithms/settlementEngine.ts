@@ -53,3 +53,55 @@ export function calculateSettlements(balances: Balance): Settlement[] {
 
   return settlements;
 }
+
+export function calculateUnsimplifiedSettlements(
+  expenses: any[],
+  payments: any[]
+): Settlement[] {
+  const pairwise: Record<string, Record<string, number>> = {};
+
+  const addDebt = (from: string, to: string, amount: number) => {
+    if (from === to) return;
+    if (!pairwise[from]) pairwise[from] = {};
+    pairwise[from][to] = (pairwise[from][to] || 0) + amount;
+  };
+
+  expenses.forEach((exp) => {
+    const payer = exp.payerId;
+    exp.participants.forEach((p: any) => {
+      if (p.userId !== payer) {
+        addDebt(p.userId, payer, p.calculatedAmount);
+      }
+    });
+  });
+
+  payments.forEach((pay) => {
+    addDebt(pay.fromUserId, pay.toUserId, -pay.amount);
+  });
+
+  const settlements: Settlement[] = [];
+
+  // Net out the pairwise debts (if A owes B 100 and B owes A 60, A owes B 40)
+  const processed = new Set<string>();
+  Object.keys(pairwise).forEach((userA) => {
+    Object.keys(pairwise[userA]).forEach((userB) => {
+      const pairKey = [userA, userB].sort().join('-');
+      if (processed.has(pairKey)) return;
+      processed.add(pairKey);
+
+      const aOwesB = pairwise[userA][userB] || 0;
+      const bOwesA = (pairwise[userB] && pairwise[userB][userA]) || 0;
+
+      const net = aOwesB - bOwesA;
+
+      if (net > 0.01) {
+        settlements.push({ from: userA, to: userB, amount: Number(net.toFixed(2)) });
+      } else if (net < -0.01) {
+        settlements.push({ from: userB, to: userA, amount: Number((-net).toFixed(2)) });
+      }
+    });
+  });
+
+  return settlements;
+}
+

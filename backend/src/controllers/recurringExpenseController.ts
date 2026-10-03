@@ -47,3 +47,24 @@ export const getGroupRecurringExpenses = async (req: AuthRequest, res: Response)
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+export const updateRecurringExpense = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const expenseId = req.params.expenseId as string;
+    const { isActive, nextRun } = req.body;
+
+    const updated = await prisma.recurringExpense.update({
+      where: { id: expenseId },
+      data: {
+        ...(isActive !== undefined && { isActive }),
+        ...(nextRun && { nextRun: new Date(nextRun) })
+      }
+    });
+
+    res.status(200).json(updated);
+  } catch (error: any) {
+    console.error('Update recurring expense error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+

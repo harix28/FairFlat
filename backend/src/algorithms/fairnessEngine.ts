@@ -1,4 +1,4 @@
-export type SplitType = 'equal' | 'percentage' | 'custom' | 'itemized' | 'usage';
+export type SplitType = 'equal' | 'percentage' | 'custom' | 'itemized' | 'shares';
 
 export interface Participant {
   userId: string;
@@ -61,6 +61,28 @@ export function calculateFairness(expense: ExpenseInput): FairnessResult {
         result[p.userId] = p.share;
       }
     });
+  } else if (expense.splitType === 'shares') {
+    let totalShares = 0;
+    expense.participants.forEach(p => {
+      totalShares += p.share || 0;
+    });
+    
+    if (totalShares > 0) {
+      expense.participants.forEach(p => {
+        result[p.userId] = Number(((expense.amount * (p.share || 0)) / totalShares).toFixed(2));
+      });
+      
+      // Fix rounding error
+      let sum = 0;
+      Object.keys(result).forEach(k => sum += result[k]);
+      if (Math.abs(sum - expense.amount) > 0.001) {
+        const diff = expense.amount - sum;
+        const firstUserId = expense.participants[0]?.userId;
+        if (firstUserId) {
+          result[firstUserId] = Number((result[firstUserId] + diff).toFixed(2));
+        }
+      }
+    }
   } else if (expense.splitType === 'itemized' && expense.items) {
     let itemsTotal = 0;
     
