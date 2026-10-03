@@ -78,7 +78,7 @@ const Layout = () => {
       <aside className="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col z-20">
         <div className="h-16 flex items-center px-6 border-b border-slate-100">
           <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">F</div>
+            <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">R</div>
             Roomio
           </div>
         </div>
