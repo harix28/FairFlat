@@ -19,7 +19,12 @@ export default api;
 export const authApi = {
   login: async (data: any) => api.post('/auth/login', data),
   register: async (data: any) => api.post('/auth/register', data),
+  googleLogin: async (data: any) => api.post('/auth/google', data),
+  forgotPassword: async (data: any) => api.post('/auth/forgot-password', data),
+  resetPassword: async (data: any) => api.post('/auth/reset-password', data),
+  updateProfile: async (data: any) => api.put('/auth/profile', data),
 };
+
 
 export const groupApi = {
   getGroups: async () => api.get('/groups'),

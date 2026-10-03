@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import http from 'http';
 import { Server } from 'socket.io';
-import { register, login, updateProfile } from './controllers/authController';
+import { register, login, updateProfile, googleLogin, forgotPassword, resetPassword } from './controllers/authController';
 import { createExpense, getGroupExpenses, deleteExpense } from './controllers/expenseController';
 import { getGroupBalancesAndSettlements } from './controllers/settlementController';
 import { getBalanceDetails } from './controllers/balanceDetailsController';
@@ -52,6 +52,9 @@ app.get('/api/health', (req, res) => {
 // Auth Routes
 app.post('/api/auth/register', register);
 app.post('/api/auth/login', login);
+app.post('/api/auth/google', googleLogin);
+app.post('/api/auth/forgot-password', forgotPassword);
+app.post('/api/auth/reset-password', resetPassword);
 app.put('/api/auth/profile', authenticateToken, updateProfile);
 
 // Group Routes (Protected)
