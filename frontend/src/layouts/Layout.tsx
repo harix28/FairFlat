@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Home, Users, Receipt, PieChart, LogOut, Bell, Repeat, BarChart3, ListTodo, ShoppingCart, MessageSquare, Settings as SettingsIcon } from 'lucide-react';
+import { Home, Receipt, PieChart, Bell, Repeat, ListTodo, ShoppingCart, MessageSquare } from 'lucide-react';
 import { FairBot } from '../components/FairBot';
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
@@ -12,7 +12,7 @@ const Layout = () => {
   const queryClient = useQueryClient();
   const [hasNewNotification, setHasNewNotification] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const { user, activeGroup, logout } = useAppContext();
+  const { user, activeGroup } = useAppContext();
 
   // Fetch real notifications from database
   const { data: notifications = [] } = useQuery({
