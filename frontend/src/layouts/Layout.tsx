@@ -231,7 +231,7 @@ const Layout = () => {
         </header>
 
         {/* Scrollable Main Content */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 relative">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 relative">
           <div className="absolute top-0 left-0 w-full h-64 bg-blue-600/5 -z-10 pointer-events-none rounded-b-[3rem]"></div>
           <Outlet />
         </main>
