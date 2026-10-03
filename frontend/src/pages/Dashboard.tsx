@@ -246,24 +246,18 @@ const Dashboard = () => {
                 <div className="text-sm text-slate-500 italic">No recent activity.</div>
               )}
               {data.activity?.slice(0, 10).map((act: any, i: number) => {
-                const actUser = act.user?.id === currentUserId ? 'You' : (act.user?.name || 'Someone');
                 let icon = <Utensils className="w-5 h-5 text-slate-500" />;
                 let bgColor = "bg-slate-100";
-                let description = act.details || act.action;
                 
-                if (act.entity === 'expense') {
+                if (act.type === 'expense') {
                   icon = <CreditCard className="w-5 h-5 text-blue-600" />;
                   bgColor = "bg-blue-100";
-                  description = `${actUser} ${act.action} an expense`;
-                } else if (act.entity === 'chore') {
+                } else if (act.type === 'chore') {
                   bgColor = "bg-purple-100";
-                  description = `${actUser} ${act.action} a chore`;
-                } else if (act.entity === 'shopping') {
+                } else if (act.type === 'shopping') {
                   bgColor = "bg-orange-100";
-                  description = `${actUser} ${act.action} a shopping item`;
-                } else if (act.entity === 'settlement') {
+                } else if (act.type === 'payment') {
                   bgColor = "bg-emerald-100";
-                  description = `${actUser} ${act.action} a settlement`;
                 }
 
                 return (
@@ -272,11 +266,11 @@ const Dashboard = () => {
                       {icon}
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-slate-900 group-hover:text-blue-600 transition-colors">{description}</p>
-                      {act.details && <p className="text-xs text-slate-500 mt-0.5">{act.details}</p>}
+                      <p className="text-sm font-medium text-slate-900 group-hover:text-blue-600 transition-colors">{act.title}</p>
+                      {act.subtitle && <p className="text-xs text-slate-500 mt-0.5">{act.subtitle}</p>}
                     </div>
                     <div className="text-xs text-slate-400">
-                      {new Date(act.createdAt).toLocaleDateString()}
+                      {new Date(act.timestamp).toLocaleDateString()}
                     </div>
                   </div>
                 );
