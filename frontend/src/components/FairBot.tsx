@@ -63,14 +63,11 @@ export function FairBot({ isOpen, onClose }: FairBotProps) {
       const res = await botApi.chat({ text: userMessage });
       const intent = res.data.result;
       
-      let botResponse = "I didn't quite catch that. Can you rephrase?";
+      let botResponse = intent.reply || "I didn't quite catch that. Can you rephrase?";
       let isActionable = false;
 
       if (intent.intent === 'CREATE_EXPENSE') {
-        botResponse = `Got it. So ${intent.payer} paid ₹${intent.amount} which is shared by ${intent.participants.join(', ')}. Should I save this?`;
         isActionable = true;
-      } else if (intent.intent === 'GET_BALANCE') {
-        botResponse = "You can check your balances in the Dashboard. The AI is still learning to read live balances!";
       }
 
       setTimeout(() => {

@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export interface BotIntent {
+  reply?: string;
   intent: 'CREATE_EXPENSE' | 'GET_BALANCE' | 'UNKNOWN';
   amount?: number;
   category?: string;
@@ -38,10 +39,10 @@ export class FairBotService {
         }
 
         // If they didn't specify anyone, default to "everyone" in a real app, but for now just empty array which gets handled by frontend
-        return { intent: 'CREATE_EXPENSE', amount, payer, participants, splitType: 'equal', title };
+        return { reply: `Got it. Should I save this ${title} expense for ₹${amount} paid by ${payer}?`, intent: 'CREATE_EXPENSE', amount, payer, participants, splitType: 'equal', title };
       }
-      if (lowerText.includes('owe me') || lowerText.includes('my balance') || lowerText.includes('how much do i owe')) return { intent: 'GET_BALANCE' };
-      return { intent: 'UNKNOWN' };
+      if (lowerText.includes('owe me') || lowerText.includes('my balance') || lowerText.includes('how much do i owe')) return { reply: "You can check your balances in the Dashboard. I'm still learning to read live balances!", intent: 'GET_BALANCE' };
+      return { reply: "I didn't quite catch that. Try saying something like 'I paid 500 for pizza'.", intent: 'UNKNOWN' };
     };
 
     if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'mock-key') {
@@ -51,11 +52,15 @@ export class FairBotService {
     try {
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       const prompt = `
-        You are an AI assistant for an expense splitting app called FairFlat.
-        Extract the structured intent from the user's message.
+        You are a highly intelligent and conversational AI assistant for an expense splitting app called FairFlat.
+        The user is talking to you. You must provide a helpful and conversational "reply" directed at the user, and also extract the structured "intent" from the user's message.
         Possible intents: CREATE_EXPENSE, GET_BALANCE, UNKNOWN.
-        Return ONLY a JSON object. Example:
-        { "intent": "CREATE_EXPENSE", "amount": 2400, "payer": "Hari", "participants": ["Hari", "Rahul"], "splitType": "equal" }
+        If the user is just saying hi or asking a general question, the intent is UNKNOWN, but you should still provide a friendly "reply" answering them or greeting them.
+        If the user wants to add an expense, set the intent to CREATE_EXPENSE, fill in the details, and write a "reply" asking them to confirm the action.
+
+        Return ONLY a JSON object EXACTLY matching this structure. Example:
+        { "reply": "Hello! I am FairBot. How can I help you manage your expenses today?", "intent": "UNKNOWN" }
+        { "reply": "Got it! Should I save this pizza expense for ₹500 paid by Hari?", "intent": "CREATE_EXPENSE", "amount": 500, "payer": "Hari", "participants": ["Hari", "Rahul"], "splitType": "equal", "title": "Pizza" }
         
         User message: "${text}"
       `;
