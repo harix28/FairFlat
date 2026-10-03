@@ -22,12 +22,14 @@ export class RoomioBotService {
     const fallbackMock = (input: string, ctx?: { userName?: string, pendingChores?: string, totalPaid?: number, totalShare?: number, balance?: number }): BotIntent => {
       const lowerText = input.toLowerCase();
       
-      // Account context questions (chores, balance, expenses)
-      if (ctx) {
-        const isChoreQ = lowerText.includes('chore') || lowerText.includes('kaam') || lowerText.includes('task') || lowerText.includes('kya karna');
-        const isBalanceQ = lowerText.includes('balance') || lowerText.includes('owe') || lowerText.includes('baaki') || lowerText.includes('kitna dena') || lowerText.includes('kitna lena');
-        const isExpenseQ = lowerText.includes('spent') || lowerText.includes('expense') || lowerText.includes('kitna kharch') || lowerText.includes('pay kiye') || lowerText.includes('paid');
+      const isChoreQ = lowerText.includes('chore') || lowerText.includes('kaam') || lowerText.includes('task') || lowerText.includes('kya karna');
+      const isBalanceQ = lowerText.includes('balance') || lowerText.includes('owe') || lowerText.includes('baaki') || lowerText.includes('kitna dena') || lowerText.includes('kitna lena');
+      const isExpenseQ = lowerText.includes('spent') || lowerText.includes('expense') || lowerText.includes('kitna kharch') || lowerText.includes('pay kiye') || lowerText.includes('paid');
 
+      if (isChoreQ || isBalanceQ || (isExpenseQ && !lowerText.includes('split') && !lowerText.match(/\d+/))) {
+        if (!ctx) {
+          return { reply: "Please select a group from the left sidebar first! I need to know which group to fetch your details for. 😊", intent: 'UNKNOWN' };
+        }
         if (isChoreQ) {
           return { reply: `${ctx.userName ? `Hey ${ctx.userName}! ` : ''}Your pending chores are: **${ctx.pendingChores || 'None! You\'re all caught up! 🎉'}**`, intent: 'UNKNOWN' };
         }
@@ -36,7 +38,7 @@ export class RoomioBotService {
           const msg = bal > 0 ? `You are owed ₹${bal.toFixed(2)} by your flatmates. 💰` : bal < 0 ? `You owe ₹${Math.abs(bal).toFixed(2)} to your flatmates.` : `You're all settled up! 🎉`;
           return { reply: msg, intent: 'UNKNOWN' };
         }
-        if (isExpenseQ && !lowerText.includes('split') && !lowerText.match(/\d+/)) {
+        if (isExpenseQ) {
           return { reply: `You have paid a total of ₹${ctx.totalPaid || 0} in this group. Your share of all expenses is ₹${ctx.totalShare?.toFixed(2) || 0}.`, intent: 'UNKNOWN' };
         }
       }
