@@ -28,7 +28,7 @@ const Dashboard = () => {
         <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-6">
           <Users className="w-10 h-10 text-blue-600" />
         </div>
-        <h1 className="text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">Welcome to FairFlat, {currentUserName}! 👋</h1>
+        <h1 className="text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">Welcome to Roomio, {currentUserName}! 👋</h1>
         <p className="text-lg text-slate-500 max-w-lg mb-8 leading-relaxed">
           You don't have any groups yet. Create a new group to start tracking expenses and splitting bills with your friends or roommates.
         </p>

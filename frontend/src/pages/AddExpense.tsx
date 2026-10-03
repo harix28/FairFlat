@@ -159,7 +159,7 @@ const AddExpense = () => {
                   </div>
                   <div>
                     <h3 className="font-semibold text-lg text-slate-900">Extracting data...</h3>
-                    <p className="text-sm text-slate-500 mt-1">FairBot AI is analyzing your receipt</p>
+                    <p className="text-sm text-slate-500 mt-1">RoomioBot AI is analyzing your receipt</p>
                   </div>
                 </>
               ) : (
@@ -196,7 +196,7 @@ const AddExpense = () => {
           <div>
             <h4 className="font-semibold text-emerald-900">Receipt Extracted Successfully!</h4>
             <p className="text-emerald-700 text-sm mt-1">
-              FairBot found {scannedData.items.length} items from {scannedData.merchant} totaling ₹{scannedData.total}. 
+              RoomioBot found {scannedData.items.length} items from {scannedData.merchant} totaling ₹{scannedData.total}. 
               It also auto-assigned items based on your household's past habits! You can tap the avatars to adjust them.
             </p>
           </div>

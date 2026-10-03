@@ -45,7 +45,7 @@ const Analytics = () => {
 
     // Title
     doc.setFontSize(22);
-    doc.text(`FairFlat End-of-Month Report`, 14, 22);
+    doc.text(`Roomio End-of-Month Report`, 14, 22);
     
     doc.setFontSize(14);
     doc.setTextColor(100);
@@ -92,7 +92,7 @@ const Analytics = () => {
     });
 
     // Save PDF
-    doc.save(`FairFlat_Report_${groupName}_${dateStr.replace(/\//g, '-')}.pdf`);
+    doc.save(`Roomio_Report_${groupName}_${dateStr.replace(/\//g, '-')}.pdf`);
   };
 
   return (

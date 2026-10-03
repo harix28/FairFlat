@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Home, Receipt, PieChart, Repeat, ListTodo, ShoppingCart, MessageSquare, Bot, Bell, Settings as SettingsIcon } from 'lucide-react';
-import { FairBot } from '../components/FairBot';
+import { RoomioBot } from '../components/RoomioBot';
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAppContext } from '../context/AppContext';
@@ -35,7 +35,7 @@ const Layout = () => {
     }
     
     // Connect to active group channel
-    const activeGroupId = localStorage.getItem('fairflat_active_group');
+    const activeGroupId = localStorage.getItem('Roomio_active_group');
     if (activeGroupId) {
       socket.emit('join_group', activeGroupId);
     }
@@ -79,7 +79,7 @@ const Layout = () => {
         <div className="h-16 flex items-center px-6 border-b border-slate-100">
           <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">F</div>
-            FairFlat
+            Roomio
           </div>
         </div>
 
@@ -105,7 +105,7 @@ const Layout = () => {
         </nav>
 
         <div className="p-4 border-t border-slate-100 flex items-center justify-center">
-          <div className="text-xs text-slate-400 font-medium tracking-wide">FairFlat 1.0</div>
+          <div className="text-xs text-slate-400 font-medium tracking-wide">Roomio 1.0</div>
         </div>
       </aside>
 
@@ -113,7 +113,7 @@ const Layout = () => {
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         {/* Top Header */}
         <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 z-10">
-          <div className="md:hidden text-xl font-bold text-blue-600">FairFlat</div>
+          <div className="md:hidden text-xl font-bold text-blue-600">Roomio</div>
           <div className="flex-1" />
           <div className="flex items-center gap-4 relative">
             <button 
@@ -229,7 +229,7 @@ const Layout = () => {
         </main>
       </div>
 
-      <FairBot isOpen={isBotOpen} onClose={() => setIsBotOpen(false)} />
+      <RoomioBot isOpen={isBotOpen} onClose={() => setIsBotOpen(false)} />
 
       {/* Mobile nav (bottom) */}
       <div className="md:hidden fixed bottom-0 w-full bg-white border-t border-slate-200 z-50 flex justify-between px-2 sm:px-6 p-2">

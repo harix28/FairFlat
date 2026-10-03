@@ -57,7 +57,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     if (user) {
       socket.connect();
       socket.emit('join_user', user.id);
-      const activeGroupId = localStorage.getItem('fairflat_active_group');
+      const activeGroupId = localStorage.getItem('Roomio_active_group');
       if (activeGroupId) socket.emit('join_group', activeGroupId);
     }
 

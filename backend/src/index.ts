@@ -17,7 +17,7 @@ import { getGroupStats } from './controllers/statsController';
 import { getDebtSimplification } from './controllers/debtSimplifyController';
 import { getMessages, createMessage, deleteMessage } from './controllers/chatController';
 import { getActivityLogs } from './controllers/activityController';
-import { FairBotService } from './bot/botService';
+import { RoomioBotService } from './bot/botService';
 import { authenticateToken } from './middleware/auth';
 import { checkGroupMembership } from './middleware/groupAuth';
 import { initCronJobs } from './cron/recurringExpenseJob';
@@ -46,7 +46,7 @@ const PORT = process.env.PORT || 5000;
 
 // Health Check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'FairFlat API is running' });
+  res.json({ status: 'ok', message: 'Roomio API is running' });
 });
 
 // Auth Routes
@@ -108,7 +108,7 @@ app.post('/api/bot/chat', authenticateToken, async (req, res) => {
   const { text } = req.body;
   if (!text) return res.status(400).json({ error: 'Text is required' });
   
-  const intent = await FairBotService.extractIntent(text);
+  const intent = await RoomioBotService.extractIntent(text);
   res.json({ result: intent });
 });
 
@@ -117,7 +117,7 @@ app.post('/api/bot/scan', authenticateToken, async (req, res) => {
   if (!base64Image) return res.status(400).json({ error: 'Image is required' });
   
   try {
-    const data = await FairBotService.scanReceipt(base64Image, mimeType || 'image/jpeg', groupId);
+    const data = await RoomioBotService.scanReceipt(base64Image, mimeType || 'image/jpeg', groupId);
     res.json(data);
   } catch (error) {
     res.status(500).json({ error: 'Failed to scan receipt' });

@@ -47,7 +47,7 @@ const Auth = () => {
       <div className="absolute top-8 left-8">
         <div className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
           <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-lg">F</div>
-          FairFlat
+          Roomio
         </div>
       </div>
 

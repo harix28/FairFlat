@@ -154,7 +154,7 @@ const Settings = () => {
           <Card className="border-red-100 bg-red-50/30 hover:bg-red-50/80 transition-colors cursor-pointer" onClick={() => logout()}>
             <CardContent className="p-4 flex items-center justify-center gap-2 text-red-600 font-medium">
               <LogOut className="w-5 h-5" /> 
-              Sign out of FairFlat
+              Sign out of Roomio
             </CardContent>
           </Card>
         </div>

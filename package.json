@@ -1,5 +1,5 @@
 {
-  "name": "fairflat-glitch",
+  "name": "Roomio-glitch",
   "version": "1.0.0",
   "scripts": {
     "start": "cd backend && npm run start",

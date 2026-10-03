@@ -12,12 +12,12 @@ interface Message {
   isActionable?: boolean;
   actionData?: any;
 }
-interface FairBotProps {
+interface RoomioBotProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function FairBot({ isOpen, onClose }: FairBotProps) {
+export function RoomioBot({ isOpen, onClose }: RoomioBotProps) {
   const [messages, setMessages] = useState<Message[]>([
     { id: '1', sender: 'bot', text: 'Hi Hari! I can help you add expenses, check balances, or settle up. Just ask!' }
   ]);
@@ -92,7 +92,7 @@ export function FairBot({ isOpen, onClose }: FairBotProps) {
           <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
             <Bot className="w-5 h-5" />
           </div>
-          <span className="font-semibold text-lg">FairBot</span>
+          <span className="font-semibold text-lg">RoomioBot</span>
         </div>
         <button onClick={onClose} className="text-white/80 hover:text-white transition-colors">
           <X className="w-5 h-5" />
@@ -134,7 +134,7 @@ export function FairBot({ isOpen, onClose }: FairBotProps) {
                       }
 
                       expenseMutation.mutate({
-                        title: intent.title || 'Added by FairBot',
+                        title: intent.title || 'Added by RoomioBot',
                         amount: intent.amount,
                         payerId: payerId,
                         splitType: intent.splitType || 'equal',
