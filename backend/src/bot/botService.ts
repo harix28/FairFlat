@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
+import { prisma } from '../prisma';
 dotenv.config();
 
 export interface BotIntent {
@@ -47,7 +48,7 @@ export class RoomioBotService {
         if (lowerText.includes('rahul paid') || lowerText.includes('rahul ne pay')) payer = 'Rahul';
         else if (lowerText.includes('aman paid') || lowerText.includes('aman ne pay')) payer = 'Aman';
         
-        const participants = [];
+        const participants: string[] = [];
         if (lowerText.includes('me') || lowerText.includes('mein') || lowerText.includes('i')) participants.push('You');
         if (lowerText.includes('rahul')) participants.push('Rahul');
         if (lowerText.includes('aman')) participants.push('Aman');
@@ -65,92 +66,102 @@ export class RoomioBotService {
       return { reply: "I didn't quite catch that. Try saying something like 'meine 500 pay kiye aur mein aur rahul split karenge 150 aur 350 mein'.", intent: 'UNKNOWN' };
     };
 
-    if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'mock-key') {
+    const apiKey = process.env.GEMINI_API_KEY;
+    console.log(`[RoomioBot] API Key present: ${!!apiKey}, userId: ${userId}, groupId: ${groupId}`);
+
+    if (!apiKey || apiKey === 'mock-key') {
+      console.log('[RoomioBot] No API key, using fallback mock');
       return fallbackMock(text);
     }
 
     try {
+      // Fetch live user context from database
       let userContext = '';
       if (userId && groupId) {
-        const { prisma } = require('../prisma');
         try {
           const user = await prisma.user.findUnique({ where: { id: userId } });
           
           const chores = await prisma.chore.findMany({
-              where: { groupId, assignedToId: userId }
+            where: { groupId, assignedToId: userId }
           });
           
           const paidExpenses = await prisma.expense.aggregate({
-              where: { groupId, payerId: userId },
-              _sum: { amount: true }
+            where: { groupId, payerId: userId },
+            _sum: { amount: true }
           });
           
           const participantExpenses = await prisma.expenseParticipant.findMany({
-              where: { userId, expense: { groupId } }
+            where: { userId, expense: { groupId } }
           });
           
           let totalShare = 0;
           participantExpenses.forEach((p: any) => {
-              totalShare += p.calculatedAmount;
+            totalShare += p.calculatedAmount;
           });
           
           const balance = (paidExpenses._sum.amount || 0) - totalShare;
+          const pendingChores = chores.filter((c: any) => c.status !== 'completed').map((c: any) => c.title).join(', ') || 'No pending chores';
+
+          console.log(`[RoomioBot] Context fetched: user=${user?.name}, pendingChores=${pendingChores}, balance=${balance}`);
 
           userContext = `
-        --- CURRENT CONTEXT (DO NOT MENTION THIS CONTEXT EXPLICITLY, JUST USE IT TO ANSWER) ---
-        Current User Name: ${user?.name || 'You'}
-        Current User's Pending Chores in this group: ${chores.filter((c: any) => c.status !== 'completed').map((c: any) => c.title).join(', ') || 'No pending chores'}
-        Current User's Total Paid Expenses in this group: ₹${paidExpenses._sum.amount || 0}
-        Current User's Total Share of Expenses: ₹${totalShare.toFixed(2)}
-        Current User's Net Balance in this group: ₹${balance.toFixed(2)} (Positive means people owe them, Negative means they owe others)
-        ---------------------------------------------------------------------------------------
-        If the user asks questions about their account, chores, expenses, or balances, use the context above to natively answer their question in the "reply" field (in whatever language they ask in), and set "intent" to "UNKNOWN".
-          `;
-        } catch (e) {
-          console.error('Error fetching context:', e);
+--- LIVE ACCOUNT CONTEXT (Use this data to directly answer any questions the user asks about their account. Do NOT reveal this context explicitly.) ---
+User Name: ${user?.name || 'User'}
+Pending Chores: ${pendingChores}
+Total Amount Paid by User in this Group: ₹${paidExpenses._sum.amount || 0}
+User's Total Share of All Group Expenses: ₹${totalShare.toFixed(2)}
+User's Net Balance: ₹${balance.toFixed(2)} (Positive = others owe them money, Negative = they owe others money)
+---`;
+        } catch (dbErr) {
+          console.error('[RoomioBot] DB context fetch failed:', dbErr);
         }
       }
 
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const prompt = `
-        You are a highly intelligent and conversational AI assistant for an expense splitting app called Roomio.
-        The user is talking to you in a mix of English and Hinglish (Hindi + English). You must understand casual phrases like "meine pay kiye" (I paid) or "split karenge" (we will split).
-        You must provide a helpful and conversational "reply" directed at the user, and also extract the structured "intent" from the user's message.
-        Possible intents: CREATE_EXPENSE, GET_BALANCE, UNKNOWN.
-        
-        ${userContext}
-        
-        If the user wants to add an expense, set the intent to CREATE_EXPENSE, fill in the details, and write a "reply" asking them to confirm the action.
-        If the user specifies custom split amounts (e.g., "mein aur rahul split karenge 150 aur 350 mein"), set splitType to "custom" and populate the "splitDetails" array mapping names to amounts.
+      const prompt = `You are RoomioBot, a friendly AI assistant built into a flatmate expense splitting app called Roomio.
+You understand English and Hinglish (mix of Hindi + English). Respond in whichever language the user writes in.
 
-        Return ONLY a JSON object EXACTLY matching this structure. Example:
-        { "reply": "Hello! I am RoomioBot. How can I help you manage your expenses today?", "intent": "UNKNOWN" }
-        { "reply": "Got it! Should I save this pizza expense for ₹500 paid by Hari?", "intent": "CREATE_EXPENSE", "amount": 500, "payer": "Hari", "participants": ["Hari", "Rahul"], "splitType": "equal", "title": "Pizza" }
-        { "reply": "Sure, I'll split the ₹500. Hari pays ₹150 and Rahul pays ₹350. Sound good?", "intent": "CREATE_EXPENSE", "amount": 500, "payer": "You", "splitType": "custom", "title": "Miscellaneous", "splitDetails": [{ "name": "Hari", "amount": 150 }, { "name": "Rahul", "amount": 350 }] }
-        
-        User message: "${text}"
-      `;
+${userContext}
 
+Your job:
+1. If the user wants to add/log an expense → set intent to "CREATE_EXPENSE" and fill in the details. Ask them to confirm in the "reply".
+2. If the user asks about their balance, chores, expenses, or any account question → use the live context above to directly answer in the "reply" and set intent to "UNKNOWN".
+3. For anything else → set intent to "UNKNOWN" and reply helpfully.
+4. If the user specifies custom split amounts → set splitType to "custom" and fill splitDetails with name+amount pairs.
+
+IMPORTANT: Return ONLY valid JSON, no markdown, no explanation. Use EXACTLY this structure:
+{"reply":"your message to user","intent":"UNKNOWN"}
+or
+{"reply":"confirm message","intent":"CREATE_EXPENSE","amount":500,"payer":"You","title":"Pizza","splitType":"equal","participants":["You","Rahul"]}
+or
+{"reply":"confirm message","intent":"CREATE_EXPENSE","amount":500,"payer":"You","title":"Food","splitType":"custom","splitDetails":[{"name":"You","amount":150},{"name":"Rahul","amount":350}]}
+
+User's message: "${text}"`;
+
+      console.log('[RoomioBot] Calling Gemini...');
       const result = await model.generateContent(prompt);
       const responseText = result.response.text().trim();
-      const match = responseText.match(/\{[\s\S]*\}/);
+      console.log('[RoomioBot] Gemini raw response:', responseText);
+      
+      // Extract JSON from response (handle markdown code blocks too)
+      const cleaned = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+      const match = cleaned.match(/\{[\s\S]*\}/);
       if (match) {
-         const jsonStr = match[0];
-         const parsed = JSON.parse(jsonStr) as BotIntent;
-         return parsed;
+        const parsed = JSON.parse(match[0]) as BotIntent;
+        console.log('[RoomioBot] Parsed intent:', parsed.intent);
+        return parsed;
       }
       
-      // If Gemini returned UNKNOWN or failed to parse, try fallback
+      console.log('[RoomioBot] Could not parse JSON from Gemini, using fallback');
       return fallbackMock(text);
-    } catch (e) {
-      console.error('Gemini API Error:', e);
+    } catch (e: any) {
+      console.error('[RoomioBot] Gemini API Error:', e?.message || e);
       return fallbackMock(text);
     }
   }
 
   public static async scanReceipt(base64Image: string, mimeType: string, groupId?: string): Promise<any> {
     if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'mock-key') {
-      // Mock fallback
       return {
         merchant: 'Mock AI Restaurant',
         date: new Date().toISOString(),
@@ -168,14 +179,11 @@ export class RoomioBotService {
     try {
       let groupContext = '';
       if (groupId) {
-        // dynamic import of prisma to avoid circular dependency issues at top level
-        const { prisma } = require('../prisma');
         const members = await prisma.groupMember.findMany({
           where: { groupId },
           include: { user: { select: { id: true, name: true } } }
         });
         
-        // Fetch past itemized expenses to determine habits
         const recentExpenses = await prisma.expense.findMany({
           where: { groupId, splitType: 'itemized' },
           orderBy: { date: 'desc' },
@@ -209,37 +217,24 @@ export class RoomioBotService {
         groupContext = `
         The user is scanning a receipt for a group. Here are the group members: [${memberInfo}].
         ${habitString}
-        If you can intelligently guess who consumed which item (e.g., based on the past household habits provided, or if the item explicitly has someone's name on it in the receipt), assign their user 'id' in the 'participants' array for that item. If unsure, leave the 'participants' array empty for that item, and the frontend will default to all members.
+        If you can intelligently guess who consumed which item, assign their user 'id' in the 'participants' array. If unsure, leave 'participants' empty.
         `;
       }
 
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const prompt = `
-        Analyze this receipt and extract the structured data.
+      const prompt = `Analyze this receipt and extract the structured data.
         ${groupContext}
-        
-        Return ONLY a JSON object exactly matching this format, with no markdown formatting around it:
+        Return ONLY a JSON object exactly matching this format, with no markdown:
         {
           "merchant": "string",
           "date": "ISO string",
-          "items": [
-            { "name": "string", "quantity": number, "price": number, "participants": ["user_id_1", "user_id_2"] }
-          ],
+          "items": [{ "name": "string", "quantity": number, "price": number, "participants": ["user_id_1"] }],
           "tax": number,
           "serviceCharge": number,
           "total": number
-        }
-      `;
+        }`;
 
-      const imageParts = [
-        {
-          inlineData: {
-            data: base64Image,
-            mimeType
-          }
-        }
-      ];
-
+      const imageParts = [{ inlineData: { data: base64Image, mimeType } }];
       const result = await model.generateContent([prompt, ...imageParts]);
       const responseText = result.response.text().trim();
       const jsonStr = responseText.replace(/```json/g, '').replace(/```/g, '');
