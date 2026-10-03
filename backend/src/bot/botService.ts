@@ -24,7 +24,7 @@ export class RoomioBotService {
       
       const isChoreQ = lowerText.includes('chore') || lowerText.includes('kaam') || lowerText.includes('task') || lowerText.includes('kya karna');
       const isBalanceQ = lowerText.includes('balance') || lowerText.includes('owe') || lowerText.includes('baaki') || lowerText.includes('kitna dena') || lowerText.includes('kitna lena');
-      const isExpenseQ = lowerText.includes('spent') || lowerText.includes('expense') || lowerText.includes('kitna kharch') || lowerText.includes('pay kiye') || lowerText.includes('paid');
+      const isExpenseQ = lowerText.includes('spent') || lowerText.includes('spend') || lowerText.includes('expense') || lowerText.includes('kitna kharch') || lowerText.includes('pay kiye') || lowerText.includes('paid');
 
       if (isChoreQ || isBalanceQ || (isExpenseQ && !lowerText.includes('split') && !lowerText.match(/\d+/))) {
         if (!ctx) {
