@@ -129,7 +129,7 @@ User's Net Balance: ₹${dbCtx.balance?.toFixed(2)} (Positive = others owe them 
 ---`;
       }
 
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
       const prompt = `You are RoomioBot, a friendly AI assistant built into a flatmate expense splitting app called Roomio.
 You understand English and Hinglish (mix of Hindi + English). Respond in whichever language the user writes in.
 
