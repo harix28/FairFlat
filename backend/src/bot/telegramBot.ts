@@ -1,17 +1,22 @@
-import TelegramBot from 'node-telegram-bot-api';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const TelegramBotApi = require('node-telegram-bot-api');
 import { PrismaClient } from '@prisma/client';
-import { RoomioBotService } from './bot/botService';
+import { RoomioBotService } from './botService';
+import type { Message } from 'node-telegram-bot-api';
 
 const prisma = new PrismaClient();
-const token = process.env.TELEGRAM_BOT_TOKEN || '8760657501:AAFJLyxboJ21uX4FPkWtyKLfEXhRvs-V8IU';
+const token = process.env.TELEGRAM_BOT_TOKEN || '';
 
 export const startTelegramBot = () => {
-  if (!token) return;
+  if (!token) {
+    console.log('[Telegram Bot] No token provided, skipping.');
+    return;
+  }
 
-  const bot = new TelegramBot(token, { polling: true });
+  const bot = new TelegramBotApi(token, { polling: true });
   console.log('[Telegram Bot] Started polling...');
 
-  bot.on('message', async (msg) => {
+  bot.on('message', async (msg: Message) => {
     const chatId = msg.chat.id;
     const text = msg.text;
 
