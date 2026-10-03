@@ -67,10 +67,6 @@ const Layout = () => {
     { name: 'Recurring', path: '/app/recurring', icon: Repeat, requiresGroup: true },
     { name: 'Chores', path: '/app/chores', icon: ListTodo, requiresGroup: true },
     { name: 'Shopping', path: '/app/shopping', icon: ShoppingCart, requiresGroup: true },
-    { name: 'Chat', path: '/app/chat', icon: MessageSquare, requiresGroup: true },
-    { name: 'Analytics', path: '/app/analytics', icon: BarChart3, requiresGroup: true },
-    { name: 'Groups', path: '/app/groups', icon: Users },
-    { name: 'Settings', path: '/app/settings', icon: SettingsIcon },
   ].filter(item => !item.requiresGroup || activeGroup);
 
   return (
@@ -105,14 +101,8 @@ const Layout = () => {
           })}
         </nav>
 
-        <div className="p-4 border-t border-slate-100">
-          <button 
-            onClick={() => logout()}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors"
-          >
-            <LogOut className="w-5 h-5 text-slate-400" />
-            Sign out
-          </button>
+        <div className="p-4 border-t border-slate-100 flex items-center justify-center">
+          <div className="text-xs text-slate-400 font-medium tracking-wide">FairFlat 1.0</div>
         </div>
       </aside>
 
@@ -123,6 +113,14 @@ const Layout = () => {
           <div className="md:hidden text-xl font-bold text-blue-600">FairFlat</div>
           <div className="flex-1" />
           <div className="flex items-center gap-4 relative">
+            {activeGroup && (
+              <Link 
+                to="/app/chat"
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+              >
+                <MessageSquare className="w-5 h-5" />
+              </Link>
+            )}
             <button 
               onClick={() => {
                 setHasNewNotification(false);
@@ -188,12 +186,6 @@ const Layout = () => {
             <Link to="/app/settings" className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 text-white flex items-center justify-center font-medium shadow-sm hover:opacity-90 transition-opacity">
               {user?.name?.charAt(0) || 'U'}
             </Link>
-            <button 
-              onClick={() => logout()}
-              className="md:hidden p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors ml-1"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
           </div>
         </header>
 
@@ -207,23 +199,17 @@ const Layout = () => {
       <FairBot />
 
       {/* Mobile nav (bottom) */}
-      <div 
-        className="md:hidden fixed bottom-0 w-full bg-white border-t border-slate-200 z-50 flex overflow-x-auto gap-4 px-4 p-2"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-      >
-        <style>{`
-          .md\\:hidden::-webkit-scrollbar { display: none; }
-        `}</style>
+      <div className="md:hidden fixed bottom-0 w-full bg-white border-t border-slate-200 z-50 flex justify-between px-2 sm:px-6 p-2">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path || (item.path !== '/app' && location.pathname.startsWith(item.path));
           return (
             <Link
               key={item.name}
               to={item.path}
-              className={`flex flex-col items-center justify-center min-w-[64px] flex-shrink-0 p-2 rounded-lg ${isActive ? 'text-blue-600' : 'text-slate-500'}`}
+              className={`flex flex-col items-center justify-center p-2 rounded-lg ${isActive ? 'text-blue-600' : 'text-slate-500'}`}
             >
               <item.icon className="w-5 h-5 mb-1" />
-              <span className="text-[10px] font-medium">{item.name}</span>
+              <span className="text-[10px] font-medium hidden sm:block">{item.name}</span>
             </Link>
           );
         })}
