@@ -4,7 +4,7 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 import { authApi } from '../services/api';
 import { useAppContext } from '../context/AppContext';
-import { Loader2, Eye, EyeOff, Chrome } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 
 type AuthMode = 'login' | 'signup' | 'forgot';
