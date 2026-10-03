@@ -202,7 +202,7 @@ const Dashboard = () => {
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle>Upcoming Bills</CardTitle>
             <Button variant="ghost" size="sm" asChild>
-              <Link to="/app/expenses/recurring">Manage</Link>
+              <Link to="/app/recurring">Manage</Link>
             </Button>
           </CardHeader>
           <CardContent>
