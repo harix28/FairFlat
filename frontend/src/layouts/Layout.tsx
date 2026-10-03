@@ -207,14 +207,20 @@ const Layout = () => {
       <FairBot />
 
       {/* Mobile nav (bottom) */}
-      <div className="md:hidden fixed bottom-0 w-full bg-white border-t border-slate-200 z-50 flex justify-around p-2">
+      <div 
+        className="md:hidden fixed bottom-0 w-full bg-white border-t border-slate-200 z-50 flex overflow-x-auto gap-4 px-4 p-2"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        <style>{`
+          .md\\:hidden::-webkit-scrollbar { display: none; }
+        `}</style>
         {navItems.map((item) => {
           const isActive = location.pathname === item.path || (item.path !== '/app' && location.pathname.startsWith(item.path));
           return (
             <Link
               key={item.name}
               to={item.path}
-              className={`flex flex-col items-center p-2 rounded-lg ${isActive ? 'text-blue-600' : 'text-slate-500'}`}
+              className={`flex flex-col items-center justify-center min-w-[64px] flex-shrink-0 p-2 rounded-lg ${isActive ? 'text-blue-600' : 'text-slate-500'}`}
             >
               <item.icon className="w-5 h-5 mb-1" />
               <span className="text-[10px] font-medium">{item.name}</span>
