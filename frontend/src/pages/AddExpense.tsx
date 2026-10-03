@@ -6,7 +6,7 @@ import { Camera, Receipt, List, PieChart, Users, CheckCircle2, Loader2, Hash } f
 import { scanReceipt, createExpense } from '../services/api';
 import { useAppContext } from '../context/AppContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { calculateFairness, SplitType } from '../algorithms/fairnessEngine';
+import { calculateFairness, type SplitType } from '../algorithms/fairnessEngine';
 
 const AddExpense = () => {
   const navigate = useNavigate();

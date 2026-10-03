@@ -7,6 +7,7 @@ interface StatsResponse {
   completedChores: number;
   totalShoppingSpend: number;
   expenseTrend: Array<{ month: string; amount: number }>;
+  memberContributions?: Array<{ userId: string; name: string; choresDone: number; itemsBought: number; expensesPaid: number; score: number }>;
 }
 
 /**

@@ -93,6 +93,7 @@ export const fetchDashboardData = async (groupId: string) => {
       expenses: expensesRes.data,
       balances: balancesRes.data.balances,
       settlements: balancesRes.data.settlements,
+      simplifiedSettlements: balancesRes.data.simplifiedSettlements || balancesRes.data.settlements,
       activity: activityRes.data,
       recurring: recurringRes.data
     };
