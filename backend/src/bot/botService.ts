@@ -95,7 +95,7 @@ export class RoomioBotService {
     if (userId && groupId) {
       try {
         const userRec = await prisma.user.findUnique({ where: { id: userId } });
-        const chores = await prisma.chore.findMany({ where: { groupId, assignedToId: userId } });
+        const chores = await prisma.chore.findMany({ where: { groupId, assignments: { some: { userId } } } });
         const paidAgg = await prisma.expense.aggregate({ where: { groupId, payerId: userId }, _sum: { amount: true } });
         const parts = await prisma.expenseParticipant.findMany({ where: { userId, expense: { groupId } } });
         let totalShare = 0;
