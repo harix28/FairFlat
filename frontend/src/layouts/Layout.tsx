@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Home, Receipt, PieChart, Repeat, ListTodo, ShoppingCart, MessageSquare, Bot, Bell, Settings as SettingsIcon } from 'lucide-react';
+import { Home, Receipt, PieChart, Repeat, ListTodo, ShoppingCart, MessageSquare, Bot, Bell, Settings as SettingsIcon, Menu, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAppContext } from '../context/AppContext';
@@ -10,6 +10,7 @@ const Layout = () => {
   const location = useLocation();
   const queryClient = useQueryClient();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [hasNewNotification, setHasNewNotification] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const { user, activeGroup } = useAppContext();
@@ -71,6 +72,13 @@ const Layout = () => {
     { name: 'Chat', path: '/app/chat', icon: MessageSquare, requiresGroup: true },
     { name: 'RoomioBot', path: '/app/bot', icon: Bot, requiresGroup: true },
   ].filter(item => !item.requiresGroup || activeGroup);
+
+  const bottomNavItems = [
+    navItems.find(i => i.name === 'Dashboard'),
+    navItems.find(i => i.name === 'Expenses'),
+    navItems.find(i => i.name === 'Chat'),
+    navItems.find(i => i.name === 'RoomioBot'),
+  ].filter(Boolean) as typeof navItems;
 
   return (
     <div className="flex h-screen bg-slate-50 font-sans">
@@ -215,21 +223,58 @@ const Layout = () => {
       </div>
 
       {/* Mobile nav (bottom) */}
-      <div className="md:hidden fixed bottom-0 w-full bg-white border-t border-slate-200 z-50 flex overflow-x-auto px-2 py-2 gap-2 hide-scrollbar shadow-[0_-4px_6px_-1px_rgb(0,0,0,0.05)]">
-        {navItems.map((item) => {
+      <div className="md:hidden fixed bottom-0 w-full bg-white border-t border-slate-200 z-40 flex justify-around px-2 py-2 pb-safe shadow-[0_-4px_6px_-1px_rgb(0,0,0,0.05)]">
+        {bottomNavItems.map((item) => {
           const isActive = location.pathname === item.path || (item.path !== '/app' && location.pathname.startsWith(item.path));
           return (
             <Link
               key={item.name}
               to={item.path}
-              className={`flex flex-col items-center justify-center p-2 rounded-xl min-w-[72px] flex-shrink-0 transition-colors ${isActive ? 'text-blue-600 bg-blue-50' : 'text-slate-500 active:bg-slate-50'}`}
+              className={`flex flex-col items-center justify-center p-2 rounded-xl transition-colors ${isActive ? 'text-blue-600' : 'text-slate-500'}`}
             >
-              <item.icon className={`w-5 h-5 mb-1 ${isActive ? 'stroke-2' : 'stroke-[1.5]'}`} />
-              <span className="text-[10px] font-medium">{item.name}</span>
+              <item.icon className={`w-6 h-6 mb-1 ${isActive ? 'stroke-2' : 'stroke-[1.5]'}`} />
+              <span className="text-[10px] font-medium">{item.name === 'Dashboard' ? 'Home' : item.name}</span>
             </Link>
           );
         })}
+        <button
+          onClick={() => setShowMobileMenu(true)}
+          className="flex flex-col items-center justify-center p-2 rounded-xl text-slate-500 transition-colors"
+        >
+          <Menu className="w-6 h-6 mb-1 stroke-[1.5]" />
+          <span className="text-[10px] font-medium">Menu</span>
+        </button>
       </div>
+
+      {/* Mobile Full Screen Menu Overlay */}
+      {showMobileMenu && (
+        <div className="md:hidden fixed inset-0 z-50 bg-white flex flex-col">
+          <div className="flex items-center justify-between p-4 border-b border-slate-100">
+            <div className="text-xl font-bold text-blue-600">Menu</div>
+            <button onClick={() => setShowMobileMenu(false)} className="p-2 text-slate-500 bg-slate-100 rounded-full">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            {navItems.map((item) => {
+              const isActive = location.pathname === item.path || (item.path !== '/app' && location.pathname.startsWith(item.path));
+              return (
+                <Link
+                  key={item.name}
+                  to={item.path}
+                  onClick={() => setShowMobileMenu(false)}
+                  className={`flex items-center gap-4 p-4 rounded-xl transition-all ${isActive ? 'bg-blue-50 text-blue-600' : 'text-slate-700 hover:bg-slate-50'}`}
+                >
+                  <div className={`p-2 rounded-lg ${isActive ? 'bg-blue-100' : 'bg-slate-100'}`}>
+                    <item.icon className="w-6 h-6" />
+                  </div>
+                  <span className="text-lg font-medium">{item.name}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
