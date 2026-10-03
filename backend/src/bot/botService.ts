@@ -17,7 +17,7 @@ export interface BotIntent {
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'mock-key');
 
 export class RoomioBotService {
-  public static async extractIntent(text: string): Promise<BotIntent> {
+  public static async extractIntent(text: string, userId?: string, groupId?: string): Promise<BotIntent> {
     const fallbackMock = (input: string): BotIntent => {
       const lowerText = input.toLowerCase();
       
