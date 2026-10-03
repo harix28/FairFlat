@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Home, Receipt, PieChart, Bell, Repeat, ListTodo, ShoppingCart, MessageSquare } from 'lucide-react';
+import { Home, Receipt, PieChart, Bell, Repeat, ListTodo, ShoppingCart, MessageSquare, Bot } from 'lucide-react';
 import { FairBot } from '../components/FairBot';
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
@@ -12,6 +12,7 @@ const Layout = () => {
   const queryClient = useQueryClient();
   const [hasNewNotification, setHasNewNotification] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [isBotOpen, setIsBotOpen] = useState(false);
   const { user, activeGroup } = useAppContext();
 
   // Fetch real notifications from database
@@ -113,6 +114,12 @@ const Layout = () => {
           <div className="md:hidden text-xl font-bold text-blue-600">FairFlat</div>
           <div className="flex-1" />
           <div className="flex items-center gap-4 relative">
+            <button 
+              onClick={() => setIsBotOpen(true)}
+              className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors relative"
+            >
+              <Bot className="w-5 h-5" />
+            </button>
             {activeGroup && (
               <Link 
                 to="/app/chat"
@@ -196,7 +203,7 @@ const Layout = () => {
         </main>
       </div>
 
-      <FairBot />
+      <FairBot isOpen={isBotOpen} onClose={() => setIsBotOpen(false)} />
 
       {/* Mobile nav (bottom) */}
       <div className="md:hidden fixed bottom-0 w-full bg-white border-t border-slate-200 z-50 flex justify-between px-2 sm:px-6 p-2">

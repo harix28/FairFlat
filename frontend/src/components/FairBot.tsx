@@ -12,9 +12,12 @@ interface Message {
   isActionable?: boolean;
   actionData?: any;
 }
+interface FairBotProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
 
-export function FairBot() {
-  const [isOpen, setIsOpen] = useState(false);
+export function FairBot({ isOpen, onClose }: FairBotProps) {
   const [messages, setMessages] = useState<Message[]>([
     { id: '1', sender: 'bot', text: 'Hi Hari! I can help you add expenses, check balances, or settle up. Just ask!' }
   ]);
@@ -82,16 +85,7 @@ export function FairBot() {
     }
   };
 
-  if (!isOpen) {
-    return (
-      <button 
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-24 right-4 md:bottom-8 md:right-8 w-14 h-14 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-full shadow-lg flex items-center justify-center text-white hover:scale-110 transition-transform z-50 animate-bounce"
-      >
-        <Bot className="w-7 h-7" />
-      </button>
-    );
-  }
+  if (!isOpen) return null;
 
   return (
     <div className="fixed bottom-24 right-4 left-4 md:left-auto md:bottom-8 md:right-8 md:w-[350px] h-[60vh] md:h-[500px] bg-white rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden border border-slate-200">
@@ -103,7 +97,7 @@ export function FairBot() {
           </div>
           <span className="font-semibold text-lg">FairBot</span>
         </div>
-        <button onClick={() => setIsOpen(false)} className="text-white/80 hover:text-white transition-colors">
+        <button onClick={onClose} className="text-white/80 hover:text-white transition-colors">
           <X className="w-5 h-5" />
         </button>
       </div>
